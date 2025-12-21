@@ -35,6 +35,8 @@ const ReceiptDetailScreen: React.FC = () => {
     const [showImageFull, setShowImageFull] = useState(false);
     const [editingItem, setEditingItem] = useState<ReceiptItem | null>(null);
     const [isEditorVisible, setIsEditorVisible] = useState(false);
+    const [isExactConnected, setIsExactConnected] = useState(false);
+    const [syncing, setSyncing] = useState(false);
 
     // Form states
     const [merchant, setMerchant] = useState('');
@@ -57,7 +59,45 @@ const ReceiptDetailScreen: React.FC = () => {
 
     useEffect(() => {
         loadData();
+        checkExactConnection();
     }, [loadData]);
+
+    const checkExactConnection = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data } = await supabase
+            .from('integration_tokens')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('provider', 'exact_online')
+            .single();
+
+        setIsExactConnected(!!data);
+    };
+
+    const handlePushToExact = async () => {
+        if (!receipt) return;
+        setSyncing(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('exact-sync', {
+                body: { receipt_id: receiptId }
+            });
+
+            if (error) throw error;
+            if (data?.success) {
+                Alert.alert('Succes', 'Bonnetje is verstuurd naar Exact Online!');
+                setReceipt({ ...receipt, is_synced: true });
+            } else {
+                throw new Error(data?.error || 'Onbekende fout bij synchroniseren');
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Fout', `Kon niet synchroniseren: ${(error as Error).message}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!receipt) return;
@@ -282,6 +322,25 @@ const ReceiptDetailScreen: React.FC = () => {
                     </LinearGradient>
                 </TouchableOpacity>
 
+                {isExactConnected && !receipt.is_synced && (
+                    <TouchableOpacity
+                        style={[styles.syncButton, { marginTop: 12 }]}
+                        onPress={handlePushToExact}
+                        disabled={syncing}
+                    >
+                        <View style={styles.syncContent}>
+                            {syncing ? (
+                                <ActivityIndicator color="#22D3EE" />
+                            ) : (
+                                <>
+                                    <Ionicons name="cloud-upload-outline" size={20} color="#22D3EE" style={{ marginRight: 8 }} />
+                                    <Text style={styles.syncButtonText}>Stuur naar Exact Online</Text>
+                                </>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                )}
+
                 <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -492,6 +551,25 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    syncButton: {
+        width: '100%',
+        height: 56,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(34, 211, 238, 0.4)',
+        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    syncContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    syncButtonText: {
+        color: '#22D3EE',
         fontSize: 16,
         fontWeight: 'bold',
     },

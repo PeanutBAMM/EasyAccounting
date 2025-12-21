@@ -31,5 +31,27 @@
     - [x] Smooth transition animations
     - [x] Verified with `tsc` and `expo-doctor` (0 errors)
 
-## Phase 7: Exact Online Integration [PENDING]
-...
+## Phase 7: Exact Online Integration [COMPLETED]
+- [x] Profile Screen UI:
+    - [x] Create `src/features/profile/ProfileScreen.tsx`
+    - [x] Implement "Profiel" tile
+    - [x] Implement "Subscription" tile
+    - [x] Implement "Boekhoud Koppeling" tile -> opens Hub
+    - [x] Accounting Integration Hub:
+        - [x] Create `src/features/profile/AccountingIntegrationScreen.tsx`
+        - [x] Grid layout for packages (Exact Online, etc.)
+- [x] Database Schema:
+    - [x] Create `integration_tokens` table
+    - [x] Set up encryption/RLS (PGVault/Secret Key)
+- [x] Edge Functions:
+    - [x] `exact-auth`: Handle OAuth callback & token storage
+    - [x] `exact-sync`: Handle receipt logic & API calls
+- [x] Frontend - Auth:
+    - [x] Add "Connect Exact Online" to Profile
+    - [x] Handle OAuth redirect
+- [x] Frontend - Sync:
+    - [x] Add "Push to Exact" button in ReceiptDetail
+    - [x] Update UI with sync status
+- [x] Verification:
+    - [x] Test OAuth flow plan
+    - [x] Test PurchaseEntry creation logic
