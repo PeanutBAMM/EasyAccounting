@@ -59,7 +59,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 provider: 'google',
                 options: {
                     redirectTo: redirectUrl,
-                    skipBrowserRedirect: true, // We will open the browser manually
+                    skipBrowserRedirect: true,
+                    queryParams: {
+                        prompt: 'select_account',
+                        access_type: 'offline',
+                    }
                 },
             });
 

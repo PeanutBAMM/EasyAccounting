@@ -59,15 +59,15 @@ Deno.serve(async (req) => {
                 .from('user_rgs_mappings')
                 .select('product_description, rgs_code, category')
                 .eq('user_id', receipt.user_id)
-                .limit(20),
+                .limit(40), // Increased history context
             supabase
                 .from('master_rgs_codes')
                 .select('code, label, category')
-                .limit(50)
+                .limit(100) // Increased master reference context
         ]);
 
         const historyContext = userHistory?.length
-            ? `USER PREVIOUS MAPPINGS (Priority):\n${userHistory.map(h => `- "${h.product_description}" -> ${h.rgs_code} (${h.category})`).join('\n')}`
+            ? `USER PREVIOUS MAPPINGS (Highest Priority):\n${userHistory.map(h => `- "${h.product_description}" -> ${h.rgs_code} (${h.category})`).join('\n')}`
             : 'No user history available.';
 
         const masterContext = masterCodes?.length
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         const prompt = `
           Analyze this receipt image and extract the following data in strict JSON format.
           
-          INTELLIGENCE CONTEXT:
+          INTELLIGENCE CONTEXT (Use this to assign bookkeeping codes):
           ${historyContext}
           
           ${masterContext}
@@ -118,11 +118,11 @@ Deno.serve(async (req) => {
             - quantity (number)
             - total_price (number)
             - vat_rate (string, e.g. "21%")
-            - category (string, matching the item description)
-            - rgs_code (string, PREFER matches from the "USER PREVIOUS MAPPINGS" if descriptions match. Otherwise use "VALID RGS CODES REFERENCE". If no match, suggest a likely code or null).
+            - category (string)
+            - rgs_code (string, MANDATORY. If no historical match found in "USER PREVIOUS MAPPINGS", you MUST select the most logical code from "VALID RGS CODES REFERENCE". If still unsure, use 'WBedOveOve' as fallback).
 
-          IMPORTANT: RGS codes are alphanumeric (e.g., 'WBedOveOve'). Do NOT use numeric codes.
-          If you are unsure, provide null. Return ONLY raw JSON, no markdown formatting.
+          CRITICAL: Every item MUST have an 'rgs_code'. Do NOT return null for this field.
+          Return ONLY raw JSON, no markdown formatting.
         `
 
         console.log('Sending request to Gemini 2.0 Flash...')

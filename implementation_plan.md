@@ -88,6 +88,22 @@ CREATE TABLE public.integration_tokens (
 
 ---
 
-## 5. Deployment Info
-- **Project Ref**: `timpxzmkzgpaluslmhpv`
-- **Redirect URI**: `https://timpxzmkzgpaluslmhpv.supabase.co/functions/v1/exact-auth`
+## Phase 8: Optimization & Security
+
+### 1. Database Security (RLS)
+We will secure the RGS-related tables which are currently open.
+
+**Tables**:
+- `user_rgs_mappings`: `auth.uid() = user_id` for all operations.
+- `master_rgs_codes`: Read-only for authenticated users, write-access restricted (Admin only).
+
+### 2. Performance: Server-side Aggregation
+To fix the dashboard bottleneck, we will move calculations to a SQL function.
+
+**New Function**: `get_monthly_stats(user_id uuid, start_date date)`
+- Returns a single row with `total_excl`, `total_incl`, and VAT breakdowns.
+- Benefits: Reduced data transfer (1 row vs. potential 1000s of lines).
+
+### 3. Missing Indexes
+- `idx_receipt_items_receipt_id` on `public.receipt_items(receipt_id)`
+- `idx_receipts_user_month` on `public.receipts(user_id, transaction_date)`

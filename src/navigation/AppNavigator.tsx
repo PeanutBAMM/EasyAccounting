@@ -10,10 +10,9 @@ import CameraScreen from '../features/receipts/CameraScreen';
 import ReceiptDetailScreen from '../features/receipts/ReceiptDetailScreen';
 import ProfileScreen from '../features/profile/ProfileScreen';
 import AccountingIntegrationScreen from '../features/profile/AccountingIntegrationScreen';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const Tab = createBottomTabNavigator();
@@ -47,7 +46,18 @@ function HomeStack() {
     );
 }
 
+function ReceiptStack() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="ReceiptList" component={ReceiptListScreen} />
+            <Stack.Screen name="ReceiptDetail" component={ReceiptDetailScreen} />
+        </Stack.Navigator>
+    );
+}
+
 function MainTabNavigator() {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
@@ -55,10 +65,13 @@ function MainTabNavigator() {
                 tabBarStyle: {
                     backgroundColor: '#0F172A',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 88 : 64,
-                    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-                    elevation: 0,
-                    shadowOpacity: 0,
+                    height: Platform.OS === 'ios' ? 88 : 68, // More standard heights
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
                 },
                 tabBarActiveTintColor: '#22D3EE',
                 tabBarInactiveTintColor: '#64748B',
@@ -88,11 +101,11 @@ function MainTabNavigator() {
             />
 
             <Tab.Screen
-                name="Profile"
-                component={ProfileScreen}
+                name="Receipts"
+                component={ReceiptStack}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
-                        <Ionicons name={focused ? "person" : "person-outline"} size={26} color={color} />
+                        <Ionicons name={focused ? "receipt" : "receipt-outline"} size={26} color={color} />
                     )
                 }}
             />
@@ -102,23 +115,23 @@ function MainTabNavigator() {
 
 const styles = StyleSheet.create({
     customButtonContainer: {
-        top: -24,
+        top: -16, // Reduced from -24 for a tighter fit
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#22D3EE',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 4 }, // Smaller offset
+        shadowOpacity: 0.3, // Toned down from 0.5
+        shadowRadius: 8, // Toned down from 12
+        elevation: 8,
     },
     customButtonGradient: {
-        width: 68,
-        height: 68,
-        borderRadius: 34,
+        width: 64, // Slightly smaller from 68
+        height: 64, // Slightly smaller from 68
+        borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 2, // Thinner border
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
 });
 

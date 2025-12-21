@@ -70,14 +70,22 @@ export default function AccountingIntegrationScreen() {
 
     const checkConnection = async () => {
         if (!user) return;
-        const { data } = await supabase
-            .from('integration_tokens')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('provider', 'exact_online')
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('integration_tokens')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('provider', 'exact_online')
+                .maybeSingle();
 
-        setIsConnected(!!data);
+            if (error) {
+                console.warn('⚠️ Error checking accounting connection:', error.message);
+            }
+            setIsConnected(!!data);
+        } catch (err) {
+            console.error('❌ Exception in checkConnection:', err);
+            setIsConnected(false);
+        }
     };
 
     const handleExactConnect = async () => {

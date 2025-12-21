@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency, toTitleCase } from '../../../utils/formatters';
 import { RecentReceiptSummary } from '../dashboardService';
 
@@ -17,12 +18,14 @@ export default function ReceiptTile({ receipt, onPress }: ReceiptTileProps) {
             onPress={() => onPress(receipt.id)}
         >
             <View style={styles.header}>
-                <Text style={styles.merchantName} numberOfLines={1}>
-                    {toTitleCase(receipt.merchant_name)}
-                </Text>
-                {receipt.is_synced && (
-                    <Ionicons name="cloud-done" size={16} color="#22C55E" />
-                )}
+                <View style={styles.merchantRow}>
+                    <Text style={styles.merchantName} numberOfLines={1}>
+                        {toTitleCase(receipt.merchant_name)}
+                    </Text>
+                    {receipt.is_synced && (
+                        <Ionicons name="cloud-done" size={14} color="#3B82F6" style={styles.syncIcon} />
+                    )}
+                </View>
             </View>
 
             <View style={styles.amountContainer}>
@@ -32,14 +35,30 @@ export default function ReceiptTile({ receipt, onPress }: ReceiptTileProps) {
             <View style={styles.vatContainer}>
                 {receipt.btw21 > 0 && (
                     <View style={styles.vatItem}>
-                        <View style={[styles.vatIcon, { backgroundColor: '#22D3EE' }]} />
-                        <Text style={styles.vatAmount}>{formatCurrency(receipt.btw21)}</Text>
+                        <LinearGradient
+                            colors={['#3B82F6', '#1D4ED8']}
+                            style={styles.vatIconMockup}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Text style={styles.vatNumberMockup}>21</Text>
+                            <Text style={styles.vatSymbolMockup}>%</Text>
+                        </LinearGradient>
+                        <Text style={[styles.vatAmount, { color: '#3B82F6' }]}>{formatCurrency(receipt.btw21)}</Text>
                     </View>
                 )}
                 {receipt.btw9 > 0 && (
                     <View style={styles.vatItem}>
-                        <View style={[styles.vatIcon, { backgroundColor: '#6366F1' }]} />
-                        <Text style={styles.vatAmount}>{formatCurrency(receipt.btw9)}</Text>
+                        <LinearGradient
+                            colors={['#A855F7', '#7E22CE']}
+                            style={styles.vatIconMockup}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Text style={styles.vatNumberMockup}>9</Text>
+                            <Text style={styles.vatSymbolMockup}>%</Text>
+                        </LinearGradient>
+                        <Text style={[styles.vatAmount, { color: '#A855F7' }]}>{formatCurrency(receipt.btw9)}</Text>
                     </View>
                 )}
             </View>
@@ -58,10 +77,12 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         marginBottom: 12,
+    },
+    merchantRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     merchantName: {
         fontSize: 13,
@@ -69,6 +90,9 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         flex: 1,
         marginRight: 4,
+    },
+    syncIcon: {
+        marginLeft: 4,
     },
     amountContainer: {
         marginBottom: 14,
@@ -88,11 +112,27 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    vatIcon: {
-        width: 8,
-        height: 8,
+    vatIconMockup: {
+        width: 22,
+        height: 16,
         borderRadius: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        paddingHorizontal: 1,
         marginRight: 6,
+    },
+    vatNumberMockup: {
+        fontSize: 8,
+        fontWeight: '900',
+        color: 'white',
+        marginRight: 0.5,
+    },
+    vatSymbolMockup: {
+        fontSize: 7,
+        fontWeight: '800',
+        color: 'white',
+        opacity: 0.9,
     },
     vatAmount: {
         fontSize: 10,

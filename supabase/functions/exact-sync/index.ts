@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
         const { data: tokens, error: tError } = await supabase.from('integration_tokens').select('*').eq('user_id', user.id).eq('provider', 'exact_online').single();
         if (tError || !tokens) throw new Error('Exact Online not connected. Please connect in Profile.');
 
-        const encryptionKey = Deno.env.get('ENCRYPTION_KEY') || 'default-poc-key-1234567890123456';
+        const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
+        if (!encryptionKey) throw new Error('Internal Server Error: ENCRYPTION_KEY not configured.');
         let accessToken = await decrypt(tokens.access_token_encrypted, encryptionKey);
         const refreshToken = await decrypt(tokens.refresh_token_encrypted, encryptionKey);
 

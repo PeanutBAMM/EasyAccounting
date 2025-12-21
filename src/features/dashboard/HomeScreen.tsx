@@ -152,7 +152,7 @@ export default function HomeScreen() {
                         />
 
                         {/* Spacer at bottom for Tab Bar visibility */}
-                        <View style={{ height: 40 }} />
+                        <View style={{ height: 20 }} />
                     </ScrollView>
                 </View>
             </SafeAreaView>

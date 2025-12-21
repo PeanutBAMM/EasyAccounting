@@ -31,8 +31,14 @@ export const uploadReceiptImage = async (uri: string, userId: string) => {
         // 2. Prepare for Upload
         if (!optimized.base64) throw new Error('Optimization failed: No base64 data');
 
+        const now = new Date();
+        const scanTimestamp = now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
+            now.getSeconds().toString().padStart(2, '0');
+
         const fileExt = 'jpg';
-        const fileName = `${userId}/${Date.now()}_${Crypto.randomUUID()}.${fileExt}`;
+        // Initial filename uses timestamp and UUID for uniqueness, will be renamed after processing
+        const fileName = `${userId}/scan-${scanTimestamp}-${Crypto.randomUUID().substring(0, 8)}.${fileExt}`;
         const contentType = 'image/jpeg';
 
         // 3. Upload via Supabase SDK

@@ -42,11 +42,11 @@ Deno.serve(async (req) => {
     const clientId = Deno.env.get('EXACT_CLIENT_ID');
     const clientSecret = Deno.env.get('EXACT_CLIENT_SECRET');
     const redirectUri = Deno.env.get('EXACT_REDIRECT_URI'); // This function's URL/callback
-    const encryptionKey = Deno.env.get('ENCRYPTION_KEY') || 'default-poc-key-1234567890123456';
+    const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
 
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (!clientId || !clientSecret || !redirectUri || !encryptionKey) {
         return new Response(
-            JSON.stringify({ error: 'Exact Online credentials not configured in Edge Function' }),
+            JSON.stringify({ error: 'Edge Function environment not fully configured (Missing Exact IDs or ENCRYPTION_KEY)' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
