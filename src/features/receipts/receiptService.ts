@@ -96,7 +96,14 @@ export const updateReceiptItem = async (itemId: string, updates: Partial<Receipt
 export const updateReceiptItems = async (items: ReceiptItem[]) => {
     // 1. Update the actual receipt items
     // We strip user_id from items as it doesn't exist in the receipt_items table (only mapping)
-    const itemsToUpdate = items.map(({ user_id, ...item }) => item);
+    // Also remove temporary IDs so Supabase handles them as new inserts
+    const itemsToUpdate = items.map(({ user_id, ...item }) => {
+        if (item.id && item.id.toString().startsWith('temp-')) {
+            const { id, ...rest } = item;
+            return rest;
+        }
+        return item;
+    });
 
     const { error: itemError } = await supabase
         .from('receipt_items')

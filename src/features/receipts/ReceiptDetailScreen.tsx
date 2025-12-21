@@ -20,7 +20,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { DetailedReceipt, getReceiptDetail, updateReceipt, deleteReceipt, updateReceiptItems, ReceiptItem, renameReceiptImage } from './receiptService';
-import { toTitleCase, formatCurrency } from '../../utils/formatters';
+import { toTitleCase, formatCurrency, formatDate, parseDate } from '../../utils/formatters';
 import LineItemEditor from './components/LineItemEditor';
 
 const { width, height } = Dimensions.get('window');
@@ -41,6 +41,7 @@ const ReceiptDetailScreen: React.FC = () => {
     const [isEditorVisible, setIsEditorVisible] = useState(false);
     const [isExactConnected, setIsExactConnected] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [isEditingSummary, setIsEditingSummary] = useState(false);
 
     // Form states
     const [merchant, setMerchant] = useState('');
@@ -54,20 +55,30 @@ const ReceiptDetailScreen: React.FC = () => {
     const scale = useRef(new Animated.Value(1)).current;
     const pan = useRef(new Animated.ValueXY()).current;
     const lastScale = useRef(1);
-    const lastDistance = useRef(0);
+    const initialDistance = useRef(0);
+    const baseScale = useRef(1);
 
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: () => {
-                pan.setOffset({
-                    // @ts-ignore
-                    x: pan.x._value,
-                    // @ts-ignore
-                    y: pan.y._value
-                });
-                pan.setValue({ x: 0, y: 0 });
+            onPanResponderGrant: (evt) => {
+                const touches = evt.nativeEvent.touches;
+                if (touches && touches.length === 2) {
+                    initialDistance.current = Math.sqrt(
+                        Math.pow(touches[0].pageX - touches[1].pageX, 2) +
+                        Math.pow(touches[0].pageY - touches[1].pageY, 2)
+                    );
+                    baseScale.current = lastScale.current;
+                } else {
+                    pan.setOffset({
+                        // @ts-ignore
+                        x: pan.x._value,
+                        // @ts-ignore
+                        y: pan.y._value
+                    });
+                    pan.setValue({ x: 0, y: 0 });
+                }
             },
             onPanResponderMove: (evt, gestureState) => {
                 if (evt.nativeEvent.touches.length === 2) {
@@ -78,26 +89,48 @@ const ReceiptDetailScreen: React.FC = () => {
                         Math.pow(touches[0].pageY - touches[1].pageY, 2)
                     );
 
-                    if (lastDistance.current > 0) {
-                        const ratio = dist / lastDistance.current;
-                        let newScale = lastScale.current * ratio;
-                        newScale = Math.max(1, Math.min(newScale, 5));
-                        scale.setValue(newScale);
+                    if (initialDistance.current === 0) {
+                        initialDistance.current = dist;
+                        baseScale.current = lastScale.current;
                     }
-                    lastDistance.current = dist;
+
+                    const ratio = dist / initialDistance.current;
+                    let newScale = baseScale.current * ratio;
+                    newScale = Math.max(1, Math.min(newScale, 5));
+                    scale.setValue(newScale);
+                    lastScale.current = newScale;
                 } else if (evt.nativeEvent.touches.length === 1 && lastScale.current > 1) {
-                    // Pan only if zoomed in
-                    Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(evt, gestureState);
+                    // Pan with boundaries and speed damping
+                    const s = lastScale.current;
+                    const maxOffsetX = (Dimensions.get('window').width * (s - 1)) / 2;
+                    const maxOffsetY = (Dimensions.get('window').height * 0.85 * (s - 1)) / 2;
+
+                    // Apply damping: slower pan when more zoomed in
+                    const dampedDx = gestureState.dx / s;
+                    const dampedDy = gestureState.dy / s;
+
+                    // Calculate potential positions
+                    // @ts-ignore
+                    const currentX = pan.x._offset + dampedDx;
+                    // @ts-ignore
+                    const currentY = pan.y._offset + dampedDy;
+
+                    // Clamp to boundaries
+                    // @ts-ignore
+                    const clampedDx = Math.max(-maxOffsetX, Math.min(maxOffsetX, currentX)) - pan.x._offset;
+                    // @ts-ignore
+                    const clampedDy = Math.max(-maxOffsetY, Math.min(maxOffsetY, currentY)) - pan.y._offset;
+
+                    pan.setValue({ x: clampedDx, y: clampedDy });
                 }
             },
             onPanResponderRelease: () => {
                 pan.flattenOffset();
-                lastDistance.current = 0;
-                // @ts-ignore
-                lastScale.current = scale._value || 1;
+                initialDistance.current = 0;
             },
             onPanResponderTerminate: () => {
-                lastDistance.current = 0;
+                pan.flattenOffset();
+                initialDistance.current = 0;
             }
         })
     ).current;
@@ -106,8 +139,9 @@ const ReceiptDetailScreen: React.FC = () => {
         setShowImageFull(false);
         scale.setValue(1);
         pan.setValue({ x: 0, y: 0 });
+        pan.setOffset({ x: 0, y: 0 });
         lastScale.current = 1;
-        lastDistance.current = 0;
+        initialDistance.current = 0;
     };
 
     const loadData = useCallback(async () => {
@@ -117,7 +151,7 @@ const ReceiptDetailScreen: React.FC = () => {
             setReceipt(data);
             setMerchant(data.merchant_name);
             setTotal(data.total_amount.toString());
-            setDate(data.transaction_date);
+            setDate(formatDate(data.transaction_date));
             setCategory(data.category || '');
 
             // Auto-fill bookkeeping codes if missing
@@ -226,7 +260,7 @@ const ReceiptDetailScreen: React.FC = () => {
                 ...receipt,
                 merchant_name: merchant,
                 total_amount: parseFloat(total),
-                transaction_date: date,
+                transaction_date: parseDate(date),
                 category: category,
             };
 
@@ -262,10 +296,21 @@ const ReceiptDetailScreen: React.FC = () => {
     const handleItemSave = (updatedItem: ReceiptItem) => {
         if (!receipt) return;
 
-        // Update local state
-        const updatedItems = receipt.items.map(item =>
-            item.id === updatedItem.id ? updatedItem : item
-        );
+        let updatedItems;
+        const exists = receipt.items.some(item => (item.id && item.id === updatedItem.id));
+
+        if (exists) {
+            updatedItems = receipt.items.map(item =>
+                item.id === updatedItem.id ? updatedItem : item
+            );
+        } else {
+            // New item - assign temporary ID if none
+            const newItem = {
+                ...updatedItem,
+                id: updatedItem.id || `temp-${Date.now()}`
+            };
+            updatedItems = [...receipt.items, newItem];
+        }
 
         setReceipt({ ...receipt, items: updatedItems });
         setHasChanges(true);
@@ -316,28 +361,22 @@ const ReceiptDetailScreen: React.FC = () => {
         );
     }
 
-    const getPredominantRGS = () => {
+    const getAllRGSCodes = () => {
         if (!receipt.items.length) return 'Geen code';
-        const counts: Record<string, number> = {};
-        receipt.items.forEach(item => {
-            if (item.rgs_code) {
-                counts[item.rgs_code] = (counts[item.rgs_code] || 0) + 1;
-            }
-        });
-        const entries = Object.entries(counts);
-        if (!entries.length) return 'Geen code';
-        return entries.sort((a, b) => b[1] - a[1])[0][0];
+        const uniqueCodes = [...new Set(receipt.items.map(item => item.rgs_code).filter(Boolean))];
+        return uniqueCodes.length > 0 ? uniqueCodes.join(', ') : 'Geen code';
     };
 
+    // Correct inclusive VAT calculations
     const v21Total = receipt.items
         .filter(i => i.vat_code === '21%')
-        .reduce((sum, i) => sum + (i.total_price * 0.21), 0);
+        .reduce((sum, i) => sum + (i.total_price * (21 / 121)), 0);
     const v9Total = receipt.items
         .filter(i => i.vat_code === '9%')
-        .reduce((sum, i) => sum + (i.total_price * 0.09), 0);
-    const totalExcl = receipt.items.reduce((sum, i) => sum + i.total_price, 0);
-    const totalInclCalculated = totalExcl + v21Total + v9Total;
-    const predominantRGS = getPredominantRGS();
+        .reduce((sum, i) => sum + (i.total_price * (9 / 109)), 0);
+    const totalInclCalculated = receipt.items.reduce((sum, i) => sum + i.total_price, 0);
+    const totalExcl = totalInclCalculated - v21Total - v9Total;
+    const allRGSCodes = getAllRGSCodes();
 
     return (
         <View style={styles.container}>
@@ -397,24 +436,65 @@ const ReceiptDetailScreen: React.FC = () => {
 
                 {/* Compact Summary Card */}
                 <View style={styles.summaryCard}>
+                    {/* Pencil Icon top right */}
+                    <TouchableOpacity
+                        style={styles.editCardPencil}
+                        onPress={() => setIsEditingSummary(!isEditingSummary)}
+                    >
+                        <Ionicons name={isEditingSummary ? "checkmark-done" : "pencil"} size={20} color="white" />
+                    </TouchableOpacity>
+
                     <View style={styles.summaryTopRow}>
                         <View style={{ flex: 1 }}>
-                            <TextInput
-                                style={styles.merchantInput}
-                                value={merchant}
-                                onChangeText={(text) => { setMerchant(text); setHasChanges(true); }}
-                                placeholder="Winkelnaam"
-                                placeholderTextColor="#94A3B8"
-                            />
-                            <Text style={styles.rgsBadgeText}>Hoofdcode: <Text style={{ color: '#22D3EE' }}>{predominantRGS}</Text></Text>
+                            {isEditingSummary ? (
+                                <View style={styles.summaryEditForm}>
+                                    <View style={styles.editFieldRow}>
+                                        <Text style={styles.editLabel}>Ontvanger:</Text>
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={merchant}
+                                            onChangeText={(text) => { setMerchant(text); setHasChanges(true); }}
+                                            placeholder="Naam"
+                                            placeholderTextColor="#64748B"
+                                        />
+                                    </View>
+                                    <View style={styles.editFieldRow}>
+                                        <Text style={styles.editLabel}>Datum:</Text>
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={date}
+                                            onChangeText={(text) => { setDate(text); setHasChanges(true); }}
+                                            placeholder="DD-MM-YYYY"
+                                            placeholderTextColor="#64748B"
+                                        />
+                                    </View>
+                                    <View style={styles.editFieldRow}>
+                                        <Text style={styles.editLabel}>Bedrag:</Text>
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={total}
+                                            onChangeText={(text) => { setTotal(text); setHasChanges(true); }}
+                                            keyboardType="numeric"
+                                            placeholder="0.00"
+                                            placeholderTextColor="#64748B"
+                                        />
+                                    </View>
+                                    <Text style={styles.rgsBadgeText}>Boekhoudcode(s): <Text style={{ color: '#22D3EE' }}>{allRGSCodes}</Text></Text>
+                                </View>
+                            ) : (
+                                <View>
+                                    <View style={styles.summaryDisplayRow}>
+                                        <Text style={styles.summaryLabelWhite}>
+                                            Ontvanger: <Text style={styles.summaryValueWhite}>{merchant || 'Onbekend'}</Text>
+                                        </Text>
+                                        <Text style={styles.summaryLabelWhite}>
+                                            Datum: <Text style={styles.summaryValueWhite}>{date}</Text>
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.rgsBadgeText}>Boekhoudcode(s): <Text style={{ color: '#22D3EE' }}>{allRGSCodes}</Text></Text>
+                                </View>
+                            )}
                         </View>
-                        <TextInput
-                            style={styles.dateInput}
-                            value={date}
-                            onChangeText={(text) => { setDate(text); setHasChanges(true); }}
-                            placeholder="DD-MM-YYYY"
-                            placeholderTextColor="#64748B"
-                        />
                     </View>
 
                     <View style={styles.divider} />
@@ -422,7 +502,7 @@ const ReceiptDetailScreen: React.FC = () => {
                     <View style={styles.summaryGrid}>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>Totaal Incl.</Text>
-                            <Text style={styles.summaryValue}>{formatCurrency(parseFloat(total) || totalInclCalculated)}</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(totalInclCalculated)}</Text>
                         </View>
                         <View style={styles.summaryItem}>
                             <Text style={styles.summaryLabel}>BTW 21%</Text>
@@ -488,6 +568,25 @@ const ReceiptDetailScreen: React.FC = () => {
                     {receipt.items.length === 0 && (
                         <Text style={styles.emptyText}>Geen items gevonden.</Text>
                     )}
+
+                    <TouchableOpacity
+                        style={styles.addItemButton}
+                        onPress={() => {
+                            setEditingItem({
+                                receipt_id: receiptId,
+                                description: '',
+                                quantity: 1,
+                                unit_price: 0,
+                                total_price: 0,
+                                vat_code: '21%',
+                                user_id: receipt.user_id
+                            } as any);
+                            setIsEditorVisible(true);
+                        }}
+                    >
+                        <Ionicons name="add-circle-outline" size={20} color="#22D3EE" />
+                        <Text style={styles.addItemText}>Voeg item toe</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={{ height: 160 }} />
@@ -672,12 +771,57 @@ const styles = StyleSheet.create({
     rgsBadgeText: {
         fontSize: 12,
         color: '#64748B',
-        marginTop: 2,
+        marginTop: 6,
+    },
+    editCardPencil: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        padding: 8,
+        borderRadius: 12,
+    },
+    summaryEditForm: {
+        marginTop: 8,
+    },
+    editFieldRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    editLabel: {
+        color: '#94A3B8',
+        fontSize: 14,
+        width: 80,
+    },
+    editInput: {
+        flex: 1,
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    summaryDisplayRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        paddingRight: 30, // Space for pencil
+    },
+    summaryLabelWhite: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
+    summaryValueWhite: {
+        color: 'white',
+        fontWeight: 'bold',
     },
     dateInput: {
         color: '#64748B',
         fontSize: 14,
-        marginLeft: 10,
         padding: 0,
     },
     divider: {
@@ -695,14 +839,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     summaryLabel: {
-        color: '#64748B',
+        color: 'rgba(255, 255, 255, 0.6)',
         fontSize: 12,
         marginBottom: 4,
     },
     summaryValue: {
         color: 'white',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
     listSection: {
         backgroundColor: 'rgba(30, 41, 59, 0.3)',
@@ -833,9 +977,26 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     fullImage: {
-        width: width,
-        height: height * 0.85,
-    }
+        width: '100%',
+        height: '85%',
+    },
+    addItemButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        marginTop: 8,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: 'rgba(34, 211, 238, 0.4)',
+        borderRadius: 12,
+    },
+    addItemText: {
+        color: '#22D3EE',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 8,
+    },
 });
 
 export default ReceiptDetailScreen;
