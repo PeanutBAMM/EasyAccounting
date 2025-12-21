@@ -8,6 +8,8 @@ import HomeScreen from '../features/dashboard/HomeScreen';
 import ReceiptListScreen from '../features/receipts/ReceiptListScreen';
 import CameraScreen from '../features/receipts/CameraScreen';
 import ReceiptDetailScreen from '../features/receipts/ReceiptDetailScreen';
+import ProfileScreen from '../features/profile/ProfileScreen';
+import AccountingIntegrationScreen from '../features/profile/AccountingIntegrationScreen';
 import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,6 +41,8 @@ function HomeStack() {
             <Stack.Screen name="ReceiptList" component={ReceiptListScreen} />
             <Stack.Screen name="ReceiptDetail" component={ReceiptDetailScreen} />
             <Stack.Screen name="Camera" component={CameraScreen} options={{ presentation: 'fullScreenModal' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="AccountingIntegration" component={AccountingIntegrationScreen} />
         </Stack.Navigator>
     );
 }
@@ -85,7 +89,7 @@ function MainTabNavigator() {
 
             <Tab.Screen
                 name="Profile"
-                component={View}
+                component={ProfileScreen}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
                         <Ionicons name={focused ? "person" : "person-outline"} size={26} color={color} />
