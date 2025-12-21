@@ -1,0 +1,35 @@
+# Visual Designs - EasyAccounting
+
+This document serves as a gallery for all high-fidelity UI mockups generated for the app.
+
+## Onboarding Screens (Nederlands)
+Premium dark-mode esthetiek met Nederlandse teksten.
+
+````carousel
+![Scherm 1: Eenvoudig Scannen](file:///C:/Users/peanu/.gemini/antigravity/brain/13502d82-d4a2-45f9-afc2-bbc1e45fb7dd/easyaccounting_onboarding_nl_1_scannen_1766141415002.png)
+<!-- slide -->
+![Scherm 2: Slimme Herkenning (met Boekhoudcode)](file:///C:/Users/peanu/.gemini/antigravity/brain/13502d82-d4a2-45f9-afc2-bbc1e45fb7dd/easyaccounting_onboarding_nl_2_ai_1766141435191.png)
+<!-- slide -->
+![Scherm 3: Direct Doorsturen](file:///C:/Users/peanu/.gemini/antigravity/brain/13502d82-d4a2-45f9-afc2-bbc1e45fb7dd/easyaccounting_onboarding_nl_3_doorsturen_1766141456130.png)
+<!-- slide -->
+![Scherm 4: Veiligheid & Sync (Concept)](file:///C:/Users/peanu/.gemini/antigravity/brain/13502d82-d4a2-45f9-afc2-bbc1e45fb7dd/easyaccounting_onboarding_screen3_secure_1766141208602.png)
+*Let op: Scherm 4 is momenteel nog in het Engels vanwege generatie-limieten.*
+````
+
+## 🏆 Master Style Guide (Based on Scherm 2)
+Het ontwerp van "Slimme Herkenning" is onze blauwdruk voor de rest van de app.
+
+### Visuele Kenmerken
+- **Achtergrond**: Diep antraciet/zwart verloop (`#0F172A` naar `#000000`).
+- **Glow Effecten**: Cyan (`#22D3EE`) en Indigo (`#6366F1`) neon accenten rondom actieve elementen.
+- **Data Kaarten**: Semi-transparante kaarten met subtiele rand-glow en afgeronde hoeken (Glassmorphism).
+- **Logo**: Het "EasyAccounting" logo met het gestileerde 'waves' icoon onderaan elk scherm.
+- **Interactie**: Gebruik van subtiele schaduwen en gradiënten op knoppen ("Volgende" / "Aan de slag").
+
+### Tekst & Taal
+- **Taal**: Volledig Nederlands.
+- **Terminologie**: Gebruik van "Boekhoudcode" in plaats van "RGS code".
+- **Tone of Voice**: Professioneel, modern en behulpzaam.
+
+## Volgende Stappen
+Omdat we de visuele stijl nu strak hebben staan, gaan we deze direct **implementeren in React Native code**. We bouwen de widgets (zoals de `OnboardingCarousel`) precies volgens dit "Master Design".
