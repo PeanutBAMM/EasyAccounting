@@ -59,15 +59,15 @@ Deno.serve(async (req) => {
                 .from('user_rgs_mappings')
                 .select('product_description, rgs_code, category')
                 .eq('user_id', receipt.user_id)
-                .limit(20),
+                .limit(40), // Increased history context
             supabase
                 .from('master_rgs_codes')
                 .select('code, label, category')
-                .limit(50)
+                .limit(100) // Increased master reference context
         ]);
 
         const historyContext = userHistory?.length
-            ? `USER PREVIOUS MAPPINGS (Priority):\n${userHistory.map(h => `- "${h.product_description}" -> ${h.rgs_code} (${h.category})`).join('\n')}`
+            ? `USER PREVIOUS MAPPINGS (Highest Priority):\n${userHistory.map(h => `- "${h.product_description}" -> ${h.rgs_code} (${h.category})`).join('\n')}`
             : 'No user history available.';
 
         const masterContext = masterCodes?.length
@@ -100,29 +100,34 @@ Deno.serve(async (req) => {
 
         // 5. Send to Gemini for Analysis
         const prompt = `
-          Analyze this receipt image and extract the following data in strict JSON format.
+          Je bent een expert in het extraheren van data uit Nederlandse kassabonnen (zoals LIDL, Albert Heijn, etc.).
+          Analyseer de afbeelding en extraheer de gegevens in STRIKT JSON formaat.
           
-          INTELLIGENCE CONTEXT:
+          INTELLIGENCE CONTEXT (Gebruik dit voor RGS codes):
           ${historyContext}
           
           ${masterContext}
 
           EXTRACTION RULES:
           - merchant_name (string)
-          - category (string, e.g. 'Horeca', 'Boodschappen', 'Kantoorartikelen', 'Elektronica', 'Brandstof')
-          - total_amount (number, use . for decimal)
-          - currency (string, e.g. EUR, USD)
-          - transaction_date (string, YYYY-MM-DD format)
-          - items: array of objects with:
+          - category (string, bijv. 'Boodschappen', 'Horeca', 'Vervoer', 'Kantoor')
+          - total_amount (number, gebruik . voor decimalen)
+          - currency (string, bijv. EUR)
+          - transaction_date (string, YYYY-MM-DD formaat)
+          - vat_summary: object met BTW bedragen per tarief zoals op de bon (bijv. {"9%": 1.50, "21%": 0.80})
+          - items: array van objecten met:
             - description (string)
             - quantity (number)
-            - total_price (number)
-            - vat_rate (string, e.g. "21%")
-            - category (string, matching the item description)
-            - rgs_code (string, PREFER matches from the "USER PREVIOUS MAPPINGS" if descriptions match. Otherwise use "VALID RGS CODES REFERENCE". If no match, suggest a likely code or null).
+            - total_price (number, inclusief BTW)
+            - vat_rate (string, MOET "9%" of "21%" zijn voor Nederlandse bonnen. Kijk naar de markeringen zoals 'A', 'B', 'H', 'L' op de bon).
+            - category (string)
+            - rgs_code (string, VERPLICHT. Match met "USER PREVIOUS MAPPINGS" of kies de beste uit "VALID RGS CODES REFERENCE". Gebruik 'WBedOveOve' alleen als fallback).
 
-          IMPORTANT: RGS codes are alphanumeric (e.g., 'WBedOveOve'). Do NOT use numeric codes.
-          If you are unsure, provide null. Return ONLY raw JSON, no markdown formatting.
+          CRITICAL: 
+          1. Extraheer ALLE regels. Voor LIDL bonnen zijn dit er vaak veel. 
+          2. Verwerk kortingen (zoals 'Lidl Plus' of 'KORTING') als aparte items met een negatief bedrag zodat de som klopt.
+          3. De som van items[].total_price MOET exact gelijk zijn aan de geëxtraheerde total_amount.
+          Return ONLY raw JSON, no markdown formatting.
         `
 
         console.log('Sending request to Gemini 2.0 Flash...')

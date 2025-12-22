@@ -23,6 +23,7 @@ export interface DetailedReceipt {
     image_path: string;
     is_synced: boolean;
     user_id: string; // Added for mapping history
+    created_at: string; // Added for filename timestamp
     items: ReceiptItem[];
 }
 
@@ -94,9 +95,19 @@ export const updateReceiptItem = async (itemId: string, updates: Partial<Receipt
  */
 export const updateReceiptItems = async (items: ReceiptItem[]) => {
     // 1. Update the actual receipt items
+    // We strip user_id from items as it doesn't exist in the receipt_items table (only mapping)
+    // Also remove temporary IDs so Supabase handles them as new inserts
+    const itemsToUpdate = items.map(({ user_id, ...item }) => {
+        if (item.id && item.id.toString().startsWith('temp-')) {
+            const { id, ...rest } = item;
+            return rest;
+        }
+        return item;
+    });
+
     const { error: itemError } = await supabase
         .from('receipt_items')
-        .upsert(items);
+        .upsert(itemsToUpdate);
 
     if (itemError) throw itemError;
 
@@ -148,4 +159,61 @@ export const deleteReceipt = async (receiptId: string, imagePath: string) => {
         .eq('id', receiptId);
 
     if (error) throw error;
+};
+
+/**
+ * Renames the receipt image in storage based on merchant name and date.
+ * Format: [winkelnaam]-[bondatum]-[scantimestamp]
+ */
+export const renameReceiptImage = async (receipt: DetailedReceipt) => {
+    if (!receipt.image_path || !receipt.merchant_name || !receipt.transaction_date) {
+        return receipt.image_path;
+    }
+
+    try {
+        const date = new Date(receipt.transaction_date);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        const formattedDate = `${day}${month}${year}`;
+
+        const createdAt = new Date(receipt.created_at);
+        const hours = createdAt.getHours().toString().padStart(2, '0');
+        const minutes = createdAt.getMinutes().toString().padStart(2, '0');
+        const seconds = createdAt.getSeconds().toString().padStart(2, '0');
+        const scanTimestamp = `${hours}${minutes}${seconds}`;
+
+        const cleanMerchant = receipt.merchant_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fileExt = receipt.image_path.split('.').pop() || 'jpg';
+
+        // Format: [winkelnaam]-[bondatum]-[scantimestamp]
+        const newFileName = `${receipt.user_id}/${cleanMerchant}-${formattedDate}-${scanTimestamp}.${fileExt}`;
+
+        if (newFileName === receipt.image_path) return receipt.image_path;
+
+        console.log(`Renaming from ${receipt.image_path} to ${newFileName}`);
+
+        // Renaming in storage (move)
+        const { error: moveError } = await supabase.storage
+            .from('receipts')
+            .move(receipt.image_path, newFileName);
+
+        if (moveError) {
+            console.warn('Rename failed (might already exist):', moveError);
+            return receipt.image_path;
+        }
+
+        // Update DB
+        const { error: updateError } = await supabase
+            .from('receipts')
+            .update({ image_path: newFileName })
+            .eq('id', receipt.id);
+
+        if (updateError) throw updateError;
+
+        return newFileName;
+    } catch (error) {
+        console.error('Error renaming receipt image:', error);
+        return receipt.image_path;
+    }
 };

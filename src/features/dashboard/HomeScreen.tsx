@@ -5,12 +5,10 @@ import {
     ScrollView,
     RefreshControl,
     ActivityIndicator,
-    TouchableOpacity,
     StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuthStore } from '../auth/authStore';
 import { supabase } from '../../lib/supabase';
@@ -152,7 +150,7 @@ export default function HomeScreen() {
                         />
 
                         {/* Spacer at bottom for Tab Bar visibility */}
-                        <View style={{ height: 40 }} />
+                        <View style={{ height: 20 }} />
                     </ScrollView>
                 </View>
             </SafeAreaView>

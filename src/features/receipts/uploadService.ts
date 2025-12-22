@@ -1,5 +1,4 @@
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import * as Crypto from 'expo-crypto';
@@ -31,8 +30,14 @@ export const uploadReceiptImage = async (uri: string, userId: string) => {
         // 2. Prepare for Upload
         if (!optimized.base64) throw new Error('Optimization failed: No base64 data');
 
+        const now = new Date();
+        const scanTimestamp = now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
+            now.getSeconds().toString().padStart(2, '0');
+
         const fileExt = 'jpg';
-        const fileName = `${userId}/${Date.now()}_${Crypto.randomUUID()}.${fileExt}`;
+        // Initial filename uses timestamp and UUID for uniqueness, will be renamed after processing
+        const fileName = `${userId}/scan-${scanTimestamp}-${Crypto.randomUUID().substring(0, 8)}.${fileExt}`;
         const contentType = 'image/jpeg';
 
         // 3. Upload via Supabase SDK
@@ -71,27 +76,25 @@ export const uploadReceiptImage = async (uri: string, userId: string) => {
 
         console.log('✅ Database record created:', receiptRec.id);
 
-        // 5. Trigger AI Analysis
-        console.log('🚀 Triggering AI processing (invoking Edge Function)...');
+        // 5. Trigger AI Analysis (ASYNCHRONOUS)
+        console.log('🚀 Triggering AI processing in background...');
 
-        // We await this now so we can see any errors in the console immediately
-        try {
-            const { data: aiData, error: aiError } = await supabase.functions.invoke('process-receipt', {
-                body: { receipt_id: receiptRec.id }
-            });
-
+        // We do NOT await this anymore. We want to return to the UI immediately.
+        supabase.functions.invoke('process-receipt', {
+            body: { receipt_id: receiptRec.id }
+        }).then(({ data: aiData, error: aiError }) => {
             if (aiError) {
-                console.error('❌ AI Trigger Error (Supabase Error):', aiError);
+                console.error('❌ AI Trigger Error (Background):', aiError);
             } else if (aiData?.success === false) {
-                console.error('❌ AI Business Logic Error:', aiData.error);
+                console.error('❌ AI Business Logic Error (Background):', aiData.error);
             } else {
-                console.log('✅ AI Trigger Success! Response:', aiData);
+                console.log('✅ AI Background Processing Finished!');
             }
-        } catch (err) {
-            console.error('❌ AI Trigger Exception:', err);
-        }
+        }).catch(err => {
+            console.error('❌ AI Trigger Exception (Background):', err);
+        });
 
-        return data.path;
+        return receiptRec.id; // Return the ID so the UI can track it if needed
 
     } catch (error) {
         console.error('❌ Upload Service Error:', error);

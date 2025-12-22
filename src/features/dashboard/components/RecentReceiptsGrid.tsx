@@ -15,13 +15,19 @@ export default function RecentReceiptsGrid({ receipts, onReceiptPress, onShowMor
             <Text style={styles.title}>Recente Bonnetjes</Text>
 
             <View style={styles.grid}>
-                {receipts.map((receipt) => (
-                    <ReceiptTile
-                        key={receipt.id}
-                        receipt={receipt}
-                        onPress={onReceiptPress}
-                    />
-                ))}
+                {receipts.length > 0 ? (
+                    receipts.map((receipt) => (
+                        <ReceiptTile
+                            key={receipt.id}
+                            receipt={receipt}
+                            onPress={onReceiptPress}
+                        />
+                    ))
+                ) : (
+                    <View style={styles.emptyStateContainer}>
+                        <Text style={styles.emptyStateText}>Nog geen bonnetjes om te tonen</Text>
+                    </View>
+                )}
             </View>
 
             {receipts.length > 0 && (
@@ -66,5 +72,21 @@ const styles = StyleSheet.create({
         color: '#22D3EE',
         fontWeight: '600',
         fontSize: 14,
+    },
+    emptyStateContainer: {
+        width: '100%',
+        paddingVertical: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(30, 41, 59, 0.3)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    emptyStateText: {
+        color: '#64748B',
+        fontSize: 14,
+        fontStyle: 'italic',
     },
 });

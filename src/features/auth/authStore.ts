@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Session, User } from '@supabase/supabase-js';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 
 export interface AuthState {
@@ -9,10 +10,13 @@ export interface AuthState {
     session: Session | null;
     isLoading: boolean;
     error: string | null;
+    hasSeenOnboarding: boolean;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
     setSession: (session: Session | null) => void;
     clearError: () => void;
+    completeOnboarding: () => Promise<void>;
+    resetOnboarding: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -20,6 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     session: null,
     isLoading: true,
     error: null,
+    hasSeenOnboarding: false,
 
     setSession: (session) => {
         set({
@@ -59,7 +64,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 provider: 'google',
                 options: {
                     redirectTo: redirectUrl,
-                    skipBrowserRedirect: true, // We will open the browser manually
+                    skipBrowserRedirect: true,
+                    queryParams: {
+                        prompt: 'select_account',
+                        access_type: 'offline',
+                    }
                 },
             });
 
@@ -116,7 +125,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ isLoading: false, error: errorMessage });
         }
     },
+
+    completeOnboarding: async () => {
+        try {
+            await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+            set({ hasSeenOnboarding: true });
+        } catch (error) {
+            console.error('❌ Error saving onboarding status:', error);
+        }
+    },
+
+    resetOnboarding: async () => {
+        try {
+            await AsyncStorage.removeItem('hasSeenOnboarding');
+            set({ hasSeenOnboarding: false });
+        } catch (error) {
+            console.error('❌ Error resetting onboarding status:', error);
+        }
+    },
 }));
+
+// Initialize onboarding status from storage
+AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
+    if (value === 'true') {
+        useAuthStore.setState({ hasSeenOnboarding: true });
+    }
+});
 
 /**
  * Handles the OAuth callback URL and exchanges the code for a session.

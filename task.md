@@ -55,3 +55,15 @@
 - [x] Verification:
     - [x] Test OAuth flow plan
     - [x] Test PurchaseEntry creation logic
+
+## Phase 8: Optimization & Security [COMPLETED]
+- [x] Database Security:
+    - [x] Enable RLS on `user_rgs_mappings`
+    - [x] Enable RLS on `master_rgs_codes`
+    - [x] Add selective policies for user-specific data
+- [x] Performance & Scaling:
+    - [x] Implement Database Function for monthly finance stats (aggregation on server)
+    - [x] Create missing indexes (`receipt_items.receipt_id`, etc.)
+- [x] Code Refactoring:
+    - [x] Update `dashboardService.ts` to use server-side aggregation
+    - [x] Remove hardcoded fallbacks in Edge Functions
