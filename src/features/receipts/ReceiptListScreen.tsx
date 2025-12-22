@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -6,11 +6,10 @@ import {
     TouchableOpacity,
     FlatList,
     RefreshControl,
-    Platform,
-    StatusBar,
-    ScrollView,
     Modal,
     Pressable,
+    ScrollView,
+    StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,11 +33,11 @@ interface ReceiptWithItems {
     status: string;
     is_synced: boolean;
     category: string;
-    receipt_items: Array<{
+    receipt_items: {
         total_price: number;
         vat_code: string;
         rgs_code: string;
-    }>;
+    }[];
 }
 
 const MONTHS = [
@@ -57,19 +56,19 @@ export default function ReceiptListScreen() {
 
     // Filter States
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-    const [filterCategory, setFilterCategory] = useState<string | null>(null);
+    const [selectedYear] = useState<number>(new Date().getFullYear());
+    const [filterCategory] = useState<string | null>(null);
     const [filterRGS, setFilterRGS] = useState<string | null>(null);
     const [filterPriceRange, setFilterPriceRange] = useState<string | null>(null);
 
     // Filter Sources
-    const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+
     const [availableRGS, setAvailableRGS] = useState<string[]>([]);
 
     // UI States
     const [activeModal, setActiveModal] = useState<FilterType | null>(null);
 
-    const fetchReceipts = async () => {
+    const fetchReceipts = useCallback(async () => {
         if (!user) return;
         setLoading(true);
 
@@ -124,9 +123,6 @@ export default function ReceiptListScreen() {
 
                 setReceipts(processedData);
 
-                // Populate filter options from current month's data
-                const categories = Array.from(new Set(data.map(r => r.category).filter(Boolean)));
-                setAvailableCategories(categories as string[]);
 
                 const rgsCodes = Array.from(new Set(data.flatMap(r =>
                     r.receipt_items?.map((item: any) => item.rgs_code).filter(Boolean)
@@ -137,18 +133,18 @@ export default function ReceiptListScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [user, selectedMonth, selectedYear, filterCategory, filterRGS, filterPriceRange]);
 
     useFocusEffect(
         useCallback(() => {
             fetchReceipts();
-        }, [user, selectedMonth, selectedYear, filterCategory, filterRGS, filterPriceRange])
+        }, [fetchReceipts])
     );
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchReceipts();
-    }, [selectedMonth, selectedYear, filterCategory, filterRGS, filterPriceRange]);
+    }, [fetchReceipts]);
 
     const formatDateCompact = (dateString: string) => {
         if (!dateString) return '--/--/--';

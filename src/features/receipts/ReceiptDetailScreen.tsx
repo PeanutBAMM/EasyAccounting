@@ -17,20 +17,18 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { DetailedReceipt, getReceiptDetail, updateReceipt, deleteReceipt, updateReceiptItems, ReceiptItem, renameReceiptImage } from './receiptService';
-import { toTitleCase, formatCurrency, formatDate, parseDate } from '../../utils/formatters';
+import { formatCurrency, formatDate, parseDate } from '../../utils/formatters';
 import LineItemEditor from './components/LineItemEditor';
 
-const { width, height } = Dimensions.get('window');
+
 
 type ReceiptDetailRouteProp = RouteProp<{ params: { receiptId: string } }, 'params'>;
 
 const ReceiptDetailScreen: React.FC = () => {
     const navigation = useNavigation();
     const route = useRoute<ReceiptDetailRouteProp>();
-    const insets = useSafeAreaInsets();
     const { receiptId } = route.params;
 
     const [loading, setLoading] = useState(true);
@@ -193,7 +191,7 @@ const ReceiptDetailScreen: React.FC = () => {
 
             // Fetch signed URL for private bucket
             if (data.image_path) {
-                const { data: signedData, error } = await supabase.storage
+                const { data: signedData } = await supabase.storage
                     .from('receipts')
                     .createSignedUrl(data.image_path, 3600); // 1 hour expiry
                 if (signedData) setImageUrl(signedData.signedUrl);
@@ -333,7 +331,7 @@ const ReceiptDetailScreen: React.FC = () => {
                                 await deleteReceipt(receiptId, receipt.image_path);
                                 navigation.goBack();
                             }
-                        } catch (error) {
+                        } catch {
                             Alert.alert('Fout', 'Kon bonnetje niet verwijderen.');
                         }
                     }

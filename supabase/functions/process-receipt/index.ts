@@ -100,28 +100,33 @@ Deno.serve(async (req) => {
 
         // 5. Send to Gemini for Analysis
         const prompt = `
-          Analyze this receipt image and extract the following data in strict JSON format.
+          Je bent een expert in het extraheren van data uit Nederlandse kassabonnen (zoals LIDL, Albert Heijn, etc.).
+          Analyseer de afbeelding en extraheer de gegevens in STRIKT JSON formaat.
           
-          INTELLIGENCE CONTEXT (Use this to assign bookkeeping codes):
+          INTELLIGENCE CONTEXT (Gebruik dit voor RGS codes):
           ${historyContext}
           
           ${masterContext}
 
           EXTRACTION RULES:
           - merchant_name (string)
-          - category (string, e.g. 'Horeca', 'Boodschappen', 'Kantoorartikelen', 'Elektronica', 'Brandstof')
-          - total_amount (number, use . for decimal)
-          - currency (string, e.g. EUR, USD)
-          - transaction_date (string, YYYY-MM-DD format)
-          - items: array of objects with:
+          - category (string, bijv. 'Boodschappen', 'Horeca', 'Vervoer', 'Kantoor')
+          - total_amount (number, gebruik . voor decimalen)
+          - currency (string, bijv. EUR)
+          - transaction_date (string, YYYY-MM-DD formaat)
+          - vat_summary: object met BTW bedragen per tarief zoals op de bon (bijv. {"9%": 1.50, "21%": 0.80})
+          - items: array van objecten met:
             - description (string)
             - quantity (number)
-            - total_price (number)
-            - vat_rate (string, e.g. "21%")
+            - total_price (number, inclusief BTW)
+            - vat_rate (string, MOET "9%" of "21%" zijn voor Nederlandse bonnen. Kijk naar de markeringen zoals 'A', 'B', 'H', 'L' op de bon).
             - category (string)
-            - rgs_code (string, MANDATORY. If no historical match found in "USER PREVIOUS MAPPINGS", you MUST select the most logical code from "VALID RGS CODES REFERENCE". If still unsure, use 'WBedOveOve' as fallback).
+            - rgs_code (string, VERPLICHT. Match met "USER PREVIOUS MAPPINGS" of kies de beste uit "VALID RGS CODES REFERENCE". Gebruik 'WBedOveOve' alleen als fallback).
 
-          CRITICAL: Every item MUST have an 'rgs_code'. Do NOT return null for this field.
+          CRITICAL: 
+          1. Extraheer ALLE regels. Voor LIDL bonnen zijn dit er vaak veel. 
+          2. Verwerk kortingen (zoals 'Lidl Plus' of 'KORTING') als aparte items met een negatief bedrag zodat de som klopt.
+          3. De som van items[].total_price MOET exact gelijk zijn aan de geëxtraheerde total_amount.
           Return ONLY raw JSON, no markdown formatting.
         `
 

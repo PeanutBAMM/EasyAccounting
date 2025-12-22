@@ -41,7 +41,7 @@ export const formatDate = (dateStr: string): string => {
         const [year, month, day] = dateStr.split('-');
         if (!year || !month || !day) return dateStr;
         return `${day}/${month}/${year}`;
-    } catch (e) {
+    } catch {
         return dateStr;
     }
 };
@@ -57,7 +57,7 @@ export const parseDate = (dateStr: string): string => {
         // Handle both DD/MM/YYYY and YYYY/MM/DD cases if needed
         if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-    } catch (e) {
+    } catch {
         return dateStr;
     }
 };

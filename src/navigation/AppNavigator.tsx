@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore, AuthState } from '../features/auth/authStore';
 import LoginScreen from '../features/auth/LoginScreen';
+import OnboardingScreen from '../features/onboarding/OnboardingScreen';
 import HomeScreen from '../features/dashboard/HomeScreen';
 import ReceiptListScreen from '../features/receipts/ReceiptListScreen';
 import CameraScreen from '../features/receipts/CameraScreen';
@@ -11,7 +12,7 @@ import ReceiptDetailScreen from '../features/receipts/ReceiptDetailScreen';
 import ProfileScreen from '../features/profile/ProfileScreen';
 import AccountingIntegrationScreen from '../features/profile/AccountingIntegrationScreen';
 import { View, ActivityIndicator, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BackgroundNotification from '../components/BackgroundNotification';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -56,16 +57,14 @@ function ReceiptStack() {
 }
 
 function MainTabNavigator() {
-    const insets = useSafeAreaInsets();
-
     return (
         <Tab.Navigator
-            screenOptions={({ route }) => ({
+            screenOptions={() => ({
                 headerShown: false,
                 tabBarStyle: {
                     backgroundColor: '#0F172A',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 88 : 68, // More standard heights
+                    height: Platform.OS === 'ios' ? 88 : 68,
                     paddingBottom: Platform.OS === 'ios' ? 30 : 10,
                     elevation: 10,
                     shadowColor: '#000',
@@ -115,22 +114,22 @@ function MainTabNavigator() {
 
 const styles = StyleSheet.create({
     customButtonContainer: {
-        top: -16, // Reduced from -24 for a tighter fit
+        top: -16,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#22D3EE',
-        shadowOffset: { width: 0, height: 4 }, // Smaller offset
-        shadowOpacity: 0.3, // Toned down from 0.5
-        shadowRadius: 8, // Toned down from 12
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
         elevation: 8,
     },
     customButtonGradient: {
-        width: 64, // Slightly smaller from 68
-        height: 64, // Slightly smaller from 68
+        width: 64,
+        height: 64,
         borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2, // Thinner border
+        borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.3)',
     },
 });
@@ -138,6 +137,7 @@ const styles = StyleSheet.create({
 export default function AppNavigator() {
     const session = useAuthStore((state: AuthState) => state.session);
     const isLoading = useAuthStore((state: AuthState) => state.isLoading);
+    const hasSeenOnboarding = useAuthStore((state: AuthState) => state.hasSeenOnboarding);
 
     if (isLoading) {
         return (
@@ -149,7 +149,14 @@ export default function AppNavigator() {
 
     return (
         <NavigationContainer>
-            {session ? <MainTabNavigator /> : <LoginScreen />}
+            {!hasSeenOnboarding ? (
+                <OnboardingScreen />
+            ) : session ? (
+                <MainTabNavigator />
+            ) : (
+                <LoginScreen />
+            )}
+            <BackgroundNotification />
         </NavigationContainer>
     );
 }

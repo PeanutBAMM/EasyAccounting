@@ -50,15 +50,18 @@ export default function CameraScreen() {
                         return;
                     }
 
-                    // Upload Process
+                    // Upload Process (Non-blocking navigation)
                     try {
-                        const path = await uploadReceiptImage(photo.uri, user.id);
-                        console.log('Upload success, path:', path);
-                        Alert.alert("Succes!", "Bonnetje geüpload.", [
-                            { text: "OK", onPress: () => navigation.goBack() }
-                        ]);
+                        // Start upload and return immediately
+                        uploadReceiptImage(photo.uri, user.id);
+                        console.log('Upload initiated, navigating back...');
+
+                        // Navigate back immediately so user can continue
+                        navigation.goBack();
                     } catch (err) {
+                        console.error("Upload start error:", err);
                         Alert.alert("Upload Fout", "Kon bonnetje niet uploaden. Probeer opnieuw.");
+                        setIsProcessing(false);
                     }
                 }
             } catch (error) {

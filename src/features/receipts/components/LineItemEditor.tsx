@@ -7,7 +7,6 @@ import {
     TextInput,
     Modal,
     ScrollView,
-    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,12 +29,21 @@ const COMMON_RGS_CODES = [
 ];
 
 const LineItemEditor: React.FC<LineItemEditorProps> = ({ visible, item, onClose, onSave }) => {
-    if (!item) return null;
+    const [description, setDescription] = useState(item?.description || '');
+    const [rgsCode, setRgsCode] = useState(item?.rgs_code || '');
+    const [category, setCategory] = useState(item?.category || '');
+    const [totalPrice, setTotalPrice] = useState(item?.total_price?.toString() || '');
 
-    const [description, setDescription] = useState(item.description);
-    const [rgsCode, setRgsCode] = useState(item.rgs_code || '');
-    const [category, setCategory] = useState(item.category || '');
-    const [totalPrice, setTotalPrice] = useState(item.total_price.toString());
+    React.useEffect(() => {
+        if (item) {
+            setDescription(item.description);
+            setRgsCode(item.rgs_code || '');
+            setCategory(item.category || '');
+            setTotalPrice(item.total_price.toString());
+        }
+    }, [item]);
+
+    if (!item) return null;
 
     const handleSave = () => {
         onSave({

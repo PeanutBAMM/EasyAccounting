@@ -5,8 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Image,
-    Alert
+    Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,18 +18,6 @@ export default function ProfileScreen() {
     const user = useAuthStore(state => state.user);
     const signOut = useAuthStore(state => state.signOut);
     const navigation = useNavigation<any>();
-
-    const handleExactConnect = () => {
-        // This will trigger the OAuth flow later
-        Alert.alert(
-            "Exact Online Koppeling",
-            "We gaan je nu doorsturen naar de Exact Online login pagina.",
-            [
-                { text: "Annuleer", style: "cancel" },
-                { text: "Doorgaan", onPress: () => console.log("Init Exact OAuth") }
-            ]
-        );
-    };
 
     return (
         <LinearGradient

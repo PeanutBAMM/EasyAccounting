@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +15,6 @@ import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../auth/authStore';
 import { supabase } from '../../lib/supabase';
-import { Alert } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const TILE_WIDTH = (width - 56) / 2;
@@ -61,14 +61,9 @@ const IntegrationTile = ({ name, icon, color, connected, onPress, disabled }: In
 export default function AccountingIntegrationScreen() {
     const navigation = useNavigation<any>();
     const user = useAuthStore(state => state.user);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [isConnected, setIsConnected] = React.useState(false);
+    const [isConnected, setIsConnected] = useState(false);
 
-    React.useEffect(() => {
-        checkConnection();
-    }, []);
-
-    const checkConnection = async () => {
+    const checkConnection = useCallback(async () => {
         if (!user) return;
         try {
             const { data, error } = await supabase
@@ -86,32 +81,28 @@ export default function AccountingIntegrationScreen() {
             console.error('❌ Exception in checkConnection:', err);
             setIsConnected(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        checkConnection();
+    }, [checkConnection]);
 
     const handleExactConnect = async () => {
         if (!user) return;
 
         try {
             // Function URL for logic
-            const functionUrl = `https://m8dakpm-peanutbamm-8081.exp.direct/functions/v1/exact-auth/login?state=${user.id}`;
-            // Actually, we should use the direct function URL if possible, or a proxy.
-            // For POC, we'll use the Supabase Project URL.
             const projectUrl = "https://kxyjgzvjkkyyvjkyyvjk.supabase.co"; // Placeholder - needs user to provide or find from .env
             const authUrl = `${projectUrl}/functions/v1/exact-auth/login?state=${user.id}`;
 
-            const result = await WebBrowser.openAuthSessionAsync(authUrl, "easyaccounting://exact-success");
+            const result = await WebBrowser.openAuthSessionAsync(authUrl, "easyaccounting://auth/callback");
 
             if (result.type === 'success') {
-                setIsRefreshing(true);
-                // Wait a bit for DB to update
-                setTimeout(async () => {
-                    await checkConnection();
-                    setIsRefreshing(false);
-                    Alert.alert("Succes!", "Je bent nu verbonden met Exact Online.");
-                }, 2000);
+                Alert.alert("Succes", "Je bent nu verbonden met Exact Online.");
+                checkConnection();
             }
-        } catch (error) {
-            Alert.alert("Fout", "Kon geen verbinding maken met Exact Online.");
+        } catch (error: any) {
+            Alert.alert("Fout", "Er is iets misgegaan bij het koppelen.");
             console.error(error);
         }
     };
@@ -129,44 +120,57 @@ export default function AccountingIntegrationScreen() {
                     >
                         <Ionicons name="arrow-back" size={24} color="#F8FAFC" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Boekhouding</Text>
+                    <Text style={styles.headerTitle}>Boekhouding Koppelen</Text>
                     <View style={{ width: 44 }} />
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <Text style={styles.description}>
-                        Koppel je favoriete boekhoudpakket om je digitale bonnen automatisch te synchroniseren.
-                    </Text>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.descriptionSection}>
+                        <Text style={styles.descriptionTitle}>Kies een pakket</Text>
+                        <Text style={styles.descriptionText}>
+                            Koppel je boekhoudpakket om bonnetjes direct door te sturen naar je administratie.
+                        </Text>
+                    </View>
 
                     <View style={styles.grid}>
                         <IntegrationTile
                             name="Exact Online"
-                            icon="business"
+                            icon="flash"
                             color="#22D3EE"
                             connected={isConnected}
                             onPress={handleExactConnect}
                         />
                         <IntegrationTile
-                            name="Moneybird"
-                            icon="leaf"
-                            color="#10B981"
-                            onPress={() => { }}
+                            name="AFAS"
+                            icon="business"
+                            color="#6366F1"
                             disabled
+                            onPress={() => { }}
                         />
                         <IntegrationTile
                             name="SnelStart"
-                            icon="flash"
-                            color="#F59E0B"
-                            onPress={() => { }}
+                            icon="rocket"
+                            color="#8B5CF6"
                             disabled
+                            onPress={() => { }}
                         />
                         <IntegrationTile
-                            name="Yuki"
-                            icon="cube"
-                            color="#6366F1"
-                            onPress={() => { }}
+                            name="Twinfield"
+                            icon="layers"
+                            color="#EC4899"
                             disabled
+                            onPress={() => { }}
                         />
+                    </View>
+
+                    <View style={styles.infoCard}>
+                        <Ionicons name="information-circle" size={24} color="#22D3EE" />
+                        <Text style={styles.infoText}>
+                            Staat jouw boekhoudpakket er niet bij? We voegen continu nieuwe koppelingen toe.
+                        </Text>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -185,45 +189,54 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
     backButton: {
         width: 44,
         height: 44,
-        borderRadius: 12,
+        borderRadius: 22,
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 18,
+        fontWeight: '700',
         color: '#F8FAFC',
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 8,
+        paddingBottom: 40,
     },
-    description: {
-        fontSize: 15,
+    descriptionSection: {
+        marginVertical: 24,
+    },
+    descriptionTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#FFF',
+        marginBottom: 8,
+    },
+    descriptionText: {
+        fontSize: 16,
         color: '#94A3B8',
-        lineHeight: 22,
-        marginBottom: 32,
+        lineHeight: 24,
     },
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginBottom: 24,
     },
     tile: {
         width: TILE_WIDTH,
-        height: TILE_WIDTH * 1.1,
+        height: TILE_WIDTH * 1.2,
         marginBottom: 16,
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     tileDisabled: {
         opacity: 0.6,
@@ -231,9 +244,9 @@ const styles = StyleSheet.create({
     glassTile: {
         flex: 1,
         backgroundColor: 'rgba(30, 41, 59, 0.5)',
+        padding: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
     },
     iconContainer: {
         width: 64,
@@ -244,51 +257,65 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     tileName: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
         color: '#F8FAFC',
         marginBottom: 12,
     },
     statusBadgeConnect: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 10,
         backgroundColor: 'rgba(34, 211, 238, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(34, 211, 238, 0.2)',
     },
     statusTextConnect: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: '700',
         color: '#22D3EE',
     },
     statusBadgeConnected: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10,
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: 'rgba(16, 185, 129, 0.2)',
     },
     statusTextConnected: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: '700',
         color: '#10B981',
         marginLeft: 4,
     },
     statusBadgeComingSoon: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10,
         backgroundColor: 'rgba(148, 163, 184, 0.1)',
-        borderWidth: 1,
-        borderColor: 'rgba(148, 163, 184, 0.2)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
     },
     statusTextComingSoon: {
-        fontSize: 11,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '700',
         color: '#94A3B8',
+    },
+    infoCard: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(30, 41, 59, 0.3)',
+        padding: 16,
+        borderRadius: 20,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    infoText: {
+        flex: 1,
+        marginLeft: 12,
+        fontSize: 14,
+        color: '#94A3B8',
+        lineHeight: 20,
     },
 });
