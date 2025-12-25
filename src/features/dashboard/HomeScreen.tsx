@@ -106,7 +106,7 @@ export default function HomeScreen() {
             <StatusBar barStyle="light-content" />
             <SafeAreaView style={styles.safeArea}>
                 <ProfileHeader
-                    userName={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Ricardo Aalbertsberg'}
+                    userName={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Ricardo'}
                     avatarUrl={user?.user_metadata?.avatar_url}
                     isPro={stats?.scanLimit === 50}
                     onProfilePress={() => navigation.navigate('Profile' as any)}
@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        backgroundColor: '#0F172A', // Ensure static header has a solid background
     },
     loadingContainer: {
         flex: 1,

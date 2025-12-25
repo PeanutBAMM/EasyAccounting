@@ -84,12 +84,12 @@ export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21To
                                         strokeDashoffset={-strokeDash21}
                                         strokeLinecap="round"
                                     />
-                                    {/* BTW-vrij - Gray */}
+                                    {/* Ex. BTW - White/Light Gray */}
                                     <Circle
                                         cx={CHART_SIZE / 2}
                                         cy={CHART_SIZE / 2}
                                         r={RADIUS}
-                                        stroke="#64748B"
+                                        stroke="#F8FAFC"
                                         strokeWidth={STROKE_WIDTH}
                                         fill="transparent"
                                         strokeDasharray={[strokeDash0, CIRCUMFERENCE]}
@@ -139,10 +139,18 @@ export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21To
                         </View>
                     </View>
                     <View style={styles.legendItem}>
-                        <Ionicons name="ban-outline" size={16} color="#64748B" style={styles.legendIcon} />
+                        <LinearGradient
+                            colors={['#F8FAFC', '#CBD5E1']}
+                            style={styles.vatIconMockup}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Text style={[styles.vatNumberMockup, { color: '#0F172A' }]}>0</Text>
+                            <Text style={[styles.vatSymbolMockup, { color: '#0F172A' }]}>%</Text>
+                        </LinearGradient>
                         <View>
                             <Text style={styles.legendValue}>{formatCurrency(btw0Total)}</Text>
-                            <Text style={styles.legendLabel}>Vrijgesteld</Text>
+                            <Text style={styles.legendLabel}>Ex. BTW</Text>
                         </View>
                     </View>
                 </View>
