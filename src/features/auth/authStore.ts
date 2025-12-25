@@ -5,6 +5,10 @@ import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 
+// CRITICAL: This MUST be called to dismiss any pending auth sessions
+// Without this, WebBrowser.openAuthSessionAsync will hang
+WebBrowser.maybeCompleteAuthSession();
+
 export interface AuthState {
     user: User | null;
     session: Session | null;
@@ -56,12 +60,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.log('🔄 Starting Google Sign-In...');
 
             // 1. Create a redirect URI for your app
+            // IMPORTANT: Expo Go does NOT support custom URL schemes for OAuth!
+            // For development, you MUST use a Development Build (npx expo prebuild)
+            // In production builds: This uses the custom scheme (easyaccounting://)
             const redirectUrl = AuthSession.makeRedirectUri({
                 scheme: 'easyaccounting',
-                path: 'auth-callback'
+                path: 'auth-callback',
             });
 
             console.log('🔗 Generated Redirect URL:', redirectUrl);
+            console.log('⚠️ NOTE: If using Expo Go, OAuth will NOT work. Use a Development Build instead.');
 
             // 2. Start the OAuth flow (get the URL only)
             const { data, error } = await supabase.auth.signInWithOAuth({
@@ -96,12 +104,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             // 4. Handle different result types
             if (result.type === 'success' && result.url) {
+                console.log('🎯 Success URL received in auth session:', result.url);
                 await handleOAuthCallback(result.url, set);
             } else if (result.type === 'dismiss' || result.type === 'cancel') {
                 console.log('⚠️ User dismissed the OAuth browser');
-                set({ isLoading: false, error: null }); // No error, user just cancelled
+                set({ isLoading: false, error: null });
             } else {
                 console.log('⚠️ Unexpected browser result type:', result.type);
+                // Also log the URL if it exists in other result types
+                if ('url' in result) console.log('🔗 Link in result:', (result as any).url);
                 set({ isLoading: false });
             }
 
@@ -243,6 +254,11 @@ async function handleOAuthCallback(
     set: (state: Partial<AuthState>) => void
 ): Promise<void> {
     console.log('🔍 Processing OAuth callback URL:', url);
+
+    if (!url) {
+        console.error('❌ Received empty URL in handleOAuthCallback');
+        throw new Error('Geen URL ontvangen voor authenticatie');
+    }
 
     // Try PKCE flow first (code parameter)
     const codeMatch = url.match(/[?&]code=([^&]+)/);

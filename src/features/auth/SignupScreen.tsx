@@ -20,6 +20,7 @@ import { useAuthStore } from './authStore';
 import AppBackground from '../../components/AppBackground';
 import BrandLogo from '../../components/BrandLogo';
 import GoogleIcon from '../../components/GoogleIcon';
+import FooterSafeZone from '../../components/FooterSafeZone';
 
 const { width: DeviceWidth } = Dimensions.get('window');
 
@@ -186,6 +187,7 @@ export default function SignupScreen({ navigation }: { navigation: any }) {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
+            <FooterSafeZone />
         </AppBackground>
     );
 }

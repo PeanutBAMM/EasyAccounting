@@ -26,7 +26,14 @@ export default function App() {
 
       // If the URL contains auth-related parameters, let authStore handle it
       if (event.url.includes('access_token=') || event.url.includes('code=') || event.url.includes('error=')) {
+        console.log('🔑 Auth parameters detected in deep link, processing...');
         await useAuthStore.getState().handleAuthLink(event.url);
+      } else if (useAuthStore.getState().isLoading) {
+        console.log('⏳ Received deep link while loading, but no auth parameters found.');
+        // If it's the base tunnel URL, it might be a fallback redirect
+        if (event.url === 'exp://m8dakpm-peanutbamm-8081.exp.direct' || event.url.endsWith('.exp.direct')) {
+          console.warn('⚠️ Possible fallback redirect detected! Check Supabase Redirect URLs.');
+        }
       }
     };
 

@@ -22,6 +22,7 @@ import { useAuthStore } from '../auth/authStore';
 import { useNavigation } from '@react-navigation/native';
 import AppBackground from '../../components/AppBackground';
 import BrandLogo from '../../components/BrandLogo';
+import FooterSafeZone from '../../components/FooterSafeZone';
 
 const { width, height } = Dimensions.get('window');
 
@@ -250,7 +251,7 @@ export default function OnboardingScreen() {
                     )}
                 />
 
-                <View style={styles.footer}>
+                <View style={styles.contentContainer}>
                     {/* Top group: dots and button */}
                     <View style={styles.footerTop}>
                         <View style={styles.pagination}>
@@ -288,10 +289,11 @@ export default function OnboardingScreen() {
 
                     {/* Bottom: logo centered in remaining space */}
                     <View style={styles.logoBottom}>
-                        <BrandLogo width={width * 0.9} style={styles.liftedLogo} />
+                        <BrandLogo style={styles.liftedLogo} />
                     </View>
                 </View>
             </SafeAreaView>
+            <FooterSafeZone />
         </AppBackground>
     );
 }
@@ -358,20 +360,11 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    footer: {
+    contentContainer: {
         flex: 1,
         width: '100%',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        backgroundColor: '#0B111D', // Deep midnight blue for the footer zone
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        // Abstract depth effect
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 20,
     },
     footerTop: {
         alignItems: 'center',
@@ -426,6 +419,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center', // Center logo in this flex:1 container
     },
     liftedLogo: {
-        marginTop: -30, // Move logo up
+        marginTop: -40, // Move logo up further
     },
 });

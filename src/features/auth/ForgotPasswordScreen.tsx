@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from './authStore';
 import AppBackground from '../../components/AppBackground';
 import BrandLogo from '../../components/BrandLogo';
+import FooterSafeZone from '../../components/FooterSafeZone';
 import { ActivityIndicator } from 'react-native';
 
 const { width: DeviceWidth } = Dimensions.get('window');
@@ -115,6 +116,7 @@ export default function ForgotPasswordScreen({ navigation }: { navigation: any }
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
+            <FooterSafeZone />
         </AppBackground>
     );
 }
