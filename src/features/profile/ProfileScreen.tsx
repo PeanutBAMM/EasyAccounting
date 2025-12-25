@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../auth/authStore';
 import ProfileTile from './components/ProfileTile';
 import { useNavigation } from '@react-navigation/native';
+import AppBackground from '../../components/AppBackground';
 
 export default function ProfileScreen() {
     const user = useAuthStore(state => state.user);
@@ -20,10 +21,7 @@ export default function ProfileScreen() {
     const navigation = useNavigation<any>();
 
     return (
-        <LinearGradient
-            colors={['#0F172A', '#000000']}
-            style={styles.container}
-        >
+        <AppBackground>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
                     <TouchableOpacity
@@ -113,7 +111,7 @@ export default function ProfileScreen() {
 
                 </ScrollView>
             </SafeAreaView>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 

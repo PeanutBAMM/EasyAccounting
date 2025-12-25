@@ -17,6 +17,10 @@ export interface AuthState {
     clearError: () => void;
     completeOnboarding: () => Promise<void>;
     resetOnboarding: () => Promise<void>;
+    signInWithEmail: (email: string, password: string) => Promise<void>;
+    signUp: (email: string, password: string) => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
+    handleAuthLink: (url: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -141,6 +145,84 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ hasSeenOnboarding: false });
         } catch (error) {
             console.error('❌ Error resetting onboarding status:', error);
+        }
+    },
+
+    signInWithEmail: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) throw error;
+            set({ session: data.session, user: data.session?.user ?? null, isLoading: false });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Inloggen mislukt';
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    signUp: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const redirectUrl = AuthSession.makeRedirectUri({
+                scheme: 'easyaccounting',
+                path: 'auth-callback'
+            });
+
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: redirectUrl,
+                }
+            });
+
+            if (error) throw error;
+
+            // If email confirmation is enabled, session might be null
+            if (!data.session && data.user) {
+                set({
+                    isLoading: false,
+                    error: 'Bevestig je e-mailadres via de link in de mail om in te loggen.'
+                });
+            } else {
+                set({ session: data.session, user: data.session?.user ?? null, isLoading: false });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Registratie mislukt';
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    resetPassword: async (email: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const redirectUrl = AuthSession.makeRedirectUri({
+                scheme: 'easyaccounting',
+                path: 'auth-callback'
+            });
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectUrl,
+            });
+
+            if (error) throw error;
+            set({ isLoading: false });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Reset link versturen mislukt';
+            set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    handleAuthLink: async (url: string) => {
+        try {
+            set({ isLoading: true });
+            await handleOAuthCallback(url, set);
+        } catch (error) {
+            console.error('❌ Error handling auth link:', error);
+            set({ isLoading: false, error: 'Kon de link niet verwerken.' });
         }
     },
 }));

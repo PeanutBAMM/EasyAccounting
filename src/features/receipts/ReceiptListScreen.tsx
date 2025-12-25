@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
+import { formatCurrency, toTitleCase } from '../../utils/formatters';
+import AppBackground from '../../components/AppBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../auth/authStore';
-import { formatCurrency, toTitleCase } from '../../utils/formatters';
 
 type RootStackParamList = {
     ReceiptDetail: { receiptId: string };
@@ -285,8 +286,7 @@ export default function ReceiptListScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            <LinearGradient colors={['#0F172A', '#000000']} style={StyleSheet.absoluteFill} />
+        <AppBackground>
             <StatusBar barStyle="light-content" />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -354,7 +354,7 @@ export default function ReceiptListScreen() {
             </SafeAreaView>
 
             {renderDropdownModal()}
-        </View>
+        </AppBackground>
     );
 }
 

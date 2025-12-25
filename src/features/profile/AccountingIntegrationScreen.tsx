@@ -9,9 +9,9 @@ import {
     Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import AppBackground from '../../components/AppBackground';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../auth/authStore';
 import { supabase } from '../../lib/supabase';
@@ -108,10 +108,7 @@ export default function AccountingIntegrationScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={['#0F172A', '#000000']}
-            style={styles.container}
-        >
+        <AppBackground>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
                     <TouchableOpacity
@@ -174,7 +171,7 @@ export default function AccountingIntegrationScreen() {
                     </View>
                 </ScrollView>
             </SafeAreaView>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 

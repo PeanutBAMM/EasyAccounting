@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuthStore } from '../auth/authStore';
 import { supabase } from '../../lib/supabase';
+import AppBackground from '../../components/AppBackground';
 
 import ProfileHeader from './components/ProfileHeader';
 import MonthlyScansWidget from './components/MonthlyScansWidget';
@@ -101,10 +102,7 @@ export default function HomeScreen() {
     }
 
     return (
-        <LinearGradient
-            colors={['#0F172A', '#000000']}
-            style={styles.container}
-        >
+        <AppBackground>
             <StatusBar barStyle="light-content" />
             <SafeAreaView style={styles.safeArea}>
                 <ProfileHeader
@@ -154,7 +152,7 @@ export default function HomeScreen() {
                     </ScrollView>
                 </View>
             </SafeAreaView>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 

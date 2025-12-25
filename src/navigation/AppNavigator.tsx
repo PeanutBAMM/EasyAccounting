@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore, AuthState } from '../features/auth/authStore';
 import LoginScreen from '../features/auth/LoginScreen';
+import SignupScreen from '../features/auth/SignupScreen';
+import ForgotPasswordScreen from '../features/auth/ForgotPasswordScreen';
 import OnboardingScreen from '../features/onboarding/OnboardingScreen';
 import HomeScreen from '../features/dashboard/HomeScreen';
 import ReceiptListScreen from '../features/receipts/ReceiptListScreen';
@@ -33,6 +35,16 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
         </LinearGradient>
     </TouchableOpacity>
 );
+
+function AuthStack() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </Stack.Navigator>
+    );
+}
 
 function HomeStack() {
     return (
@@ -154,7 +166,7 @@ export default function AppNavigator() {
             ) : session ? (
                 <MainTabNavigator />
             ) : (
-                <LoginScreen />
+                <AuthStack />
             )}
             <BackgroundNotification />
         </NavigationContainer>

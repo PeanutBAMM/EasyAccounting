@@ -21,14 +21,21 @@ export default function App() {
     // The actual code exchange happens in authStore.signInWithGoogle()
     // This listener is only for debugging and edge cases where the app
     // is opened via URL while auth flow is in progress
-    const handleDeepLink = (event: { url: string }) => {
+    const handleDeepLink = async (event: { url: string }) => {
       console.log('🛸 Deep link received:', event.url);
-      // We intentionally do NOT exchange code here to prevent race conditions
-      // The authStore.signInWithGoogle() handles the complete flow
-      // The onAuthStateChange listener above will pick up any session changes
+
+      // If the URL contains auth-related parameters, let authStore handle it
+      if (event.url.includes('access_token=') || event.url.includes('code=') || event.url.includes('error=')) {
+        await useAuthStore.getState().handleAuthLink(event.url);
+      }
     };
 
     const deepLinkSubscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Also check if the app was opened via a link (initial URL)
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
 
     // 3. Set initial session from storage
     supabase.auth.getSession().then(({ data: { session } }) => {
