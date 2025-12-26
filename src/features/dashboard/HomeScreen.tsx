@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
-        backgroundColor: '#0F172A', // Ensure static header has a solid background
+        // backgroundColor: '#0F172A', // REMOVED: Covered the AppBackground grid
     },
     loadingContainer: {
         flex: 1,
@@ -172,9 +172,9 @@ const styles = StyleSheet.create({
     },
     contentWrapper: {
         flex: 1,
-        position: 'relative',
+        marginTop: -10, // Pull up to reduce header gap
     },
     scrollContent: {
-        paddingTop: 8,
+        paddingTop: 0, // Reduced padding
     },
 });

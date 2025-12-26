@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
         // 5. Send to Gemini for Analysis
         const prompt = `
-          Je bent een expert in het extraheren van data uit Nederlandse kassabonnen (zoals LIDL, Albert Heijn, etc.).
+          Je bent een expert in het extraheren van data uit Nederlandse kassabonnen voor SI-UBL 2.0 (NLCIUS) compliance.
           Analyseer de afbeelding en extraheer de gegevens in STRIKT JSON formaat.
           
           INTELLIGENCE CONTEXT (Gebruik dit voor RGS codes):
@@ -108,25 +108,26 @@ Deno.serve(async (req) => {
           
           ${masterContext}
 
-          EXTRACTION RULES:
+          EXTRACTION RULES (Cruciaal voor UBL):
           - merchant_name (string)
+          - merchant_vat_number (string, zoek naar BTW-nummer van de leverancier, bijv. NL123456789B01)
           - category (string, bijv. 'Boodschappen', 'Horeca', 'Vervoer', 'Kantoor')
           - total_amount (number, gebruik . voor decimalen)
+          - total_vat_amount (number, totaal BTW bedrag)
           - currency (string, bijv. EUR)
           - transaction_date (string, YYYY-MM-DD formaat)
-          - vat_summary: object met BTW bedragen per tarief zoals op de bon (bijv. {"9%": 1.50, "21%": 0.80})
+          - vat_summary: object met BTW bedragen per tarief (bijv. {"9%": 1.50, "21%": 0.80})
           - items: array van objecten met:
             - description (string)
             - quantity (number)
             - total_price (number, inclusief BTW)
-            - vat_rate (string, MOET "9%" of "21%" zijn voor Nederlandse bonnen. Kijk naar de markeringen zoals 'A', 'B', 'H', 'L' op de bon).
-            - category (string)
-            - rgs_code (string, VERPLICHT. Match met "USER PREVIOUS MAPPINGS" of kies de beste uit "VALID RGS CODES REFERENCE". Gebruik 'WBedOveOve' alleen als fallback).
+            - vat_rate (string, "9%", "21%" of "0%")
+            - rgs_code (string, VERPLICHT. Match met context of gebruik 'WBedOveOve' als fallback).
 
           CRITICAL: 
-          1. Extraheer ALLE regels. Voor LIDL bonnen zijn dit er vaak veel. 
-          2. Verwerk kortingen (zoals 'Lidl Plus' of 'KORTING') als aparte items met een negatief bedrag zodat de som klopt.
-          3. De som van items[].total_price MOET exact gelijk zijn aan de geëxtraheerde total_amount.
+          1. Extraheer de volledige juridische naam en het BTW-nummer van de leverancier (indien aanwezig).
+          2. De som van items[].total_price MOET exact gelijk zijn aan de geëxtraheerde total_amount.
+          3. Verwerk kortingen als negatieve bedragen.
           Return ONLY raw JSON, no markdown formatting.
         `
 
@@ -156,26 +157,7 @@ Deno.serve(async (req) => {
             throw new Error(`AI returned invalid JSON: ${(e as Error).message}. Raw response: ${text.substring(0, 100)}...`)
         }
 
-        // 6. Update Database
-        console.log('Updating database with extracted data...')
-        const { error: updateError } = await supabase
-            .from('receipts')
-            .update({
-                merchant_name: extractedData.merchant_name || 'Onbekend',
-                category: extractedData.category || 'Overig',
-                total_amount: extractedData.total_amount || 0,
-                currency: extractedData.currency || 'EUR',
-                transaction_date: extractedData.transaction_date || new Date().toISOString().split('T')[0],
-                status: 'review_required',
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', receipt_id)
-
-        if (updateError) {
-            throw new Error(`Failed to update receipt in database: ${updateError.message}`)
-        }
-
-        // 7. Insert Items
+        // 6. Insert Items
         if (extractedData.items && Array.isArray(extractedData.items)) {
             console.log(`Inserting ${extractedData.items.length} line items...`)
             // Delete existing items
@@ -196,6 +178,26 @@ Deno.serve(async (req) => {
                 const { error: itemsError } = await supabase.from('receipt_items').insert(itemsToInsert)
                 if (itemsError) console.error('Failed to insert items:', itemsError.message)
             }
+        }
+
+        // 7. Update Database (AFTER ITEMS)
+        console.log('Updating database with extracted data...')
+        const { error: updateError } = await supabase
+            .from('receipts')
+            .update({
+                merchant_name: extractedData.merchant_name || 'Onbekend',
+                merchant_vat_number: extractedData.merchant_vat_number || null,
+                category: extractedData.category || 'Overig',
+                total_amount: extractedData.total_amount || 0,
+                currency: extractedData.currency || 'EUR',
+                transaction_date: extractedData.transaction_date || new Date().toISOString().split('T')[0],
+                status: 'review_required',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', receipt_id)
+
+        if (updateError) {
+            throw new Error(`Failed to update receipt in database: ${updateError.message}`)
         }
 
         console.log('✅ AI Processing finished successfully.')

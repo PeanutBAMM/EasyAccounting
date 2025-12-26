@@ -76,8 +76,8 @@ function MainTabNavigator() {
                 tabBarStyle: {
                     backgroundColor: '#0F172A',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 88 : 68,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    height: Platform.OS === 'ios' ? 90 : 75, // Slightly taller for better spacing
+                    paddingBottom: Platform.OS === 'ios' ? 30 : 15, // More padding to avoid edge
                     elevation: 10,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: -4 },
@@ -126,7 +126,7 @@ function MainTabNavigator() {
 
 const styles = StyleSheet.create({
     customButtonContainer: {
-        top: -16,
+        top: -24, // Lifted slightly more
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#22D3EE',
