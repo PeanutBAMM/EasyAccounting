@@ -1,39 +1,52 @@
-# Supabase CLI Walkthrough
+# Supabase CLI Walkthrough & Cheat Sheet
 
-Dit document dient als naslagwerk voor het gebruik van de Supabase CLI in dit project.
+Dit bestand bevat de belangrijkste commando's voor het beheren van de EasyAccounting Supabase backend via de CLI.
 
-## Project Status Controleren
-Om te zien welk project is gelinkt en of de CLI goed is geconfigureerd:
-```powershell
-npx supabase projects list
+## 1. Project Koppelen
+Voordat je commando's kunt uitvoeren, moet de lokale omgeving gekoppeld zijn aan het remote project.
+```bash
+# Inloggen bij Supabase
+npx supabase login
+
+# Project koppelen (Project ID: timpxzmkzgpaluslmhpv)
+npx supabase link --project-ref timpxzmkzgpaluslmhpv
 ```
 
-## Project Linken
-Als het project nog niet is gelinkt (of opnieuw moet):
-```powershell
-npx supabase link --project-ref <project-id>
+## 2. Database Migraties
+Migraties worden gebruikt om het database schema synchroon te houden.
+```bash
+# Status van migraties bekijken (Local vs Remote)
+npx supabase migration list
+
+# Schema van de database naar lokaal trekken
+npx supabase db pull
+
+# Nieuwe lokale migraties naar de database pushen
+npx supabase db push
+
+# Een specifieke migratie repareren/overslaan
+npx supabase migration repair --status reverted <migration_id>
 ```
 
-## Database Inspectie (Zonder Docker)
-Omdat Docker niet altijd beschikbaar is, kunnen we de database inspecteren via:
-```powershell
-npx supabase inspect db table-stats --linked
-```
-
-## Edge Functions
-Beheer van de receipt processing logica:
-```powershell
-# Lijst van functies
+## 3. Edge Functions
+Functies voor AI-verwerking en synchronisatie.
+```bash
+# Lijst van actieve functies bekijken
 npx supabase functions list
 
-# Download/Pull van een remote functie
-npx supabase functions pull <name>
+# Een specifieke functie implementeren (bijv. process-receipt)
+npx supabase functions deploy process-receipt --no-verify-jwt
 
-# Deployen van wijzigingen
-npx supabase functions deploy <name> --no-verify-jwt
+# Lokale development van functies
+npx supabase functions serve
 ```
 
-## Belangrijke Commando's
-- `npx supabase login`: Inloggen bij Supabase.
-- `npx supabase status`: Huidige status van de lokale/gelinkte omgeving.
-- `npx supabase db dump --linked`: Exporteren van data/schema van de remote database.
+## 4. Database Inspectie
+Directe queries uitvoeren (Docker vereist voor lokale inspectie, anders via dashboard).
+```bash
+# Tabel inhoud bekijken via CLI
+npx supabase db execute --linked "SELECT * FROM receipts LIMIT 5;"
+```
+
+---
+*Dit bestand is hersteld na een onbedoelde verwijdering tijdens de cleanup.*

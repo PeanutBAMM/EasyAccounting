@@ -14,9 +14,10 @@ import {
     Animated,
     PanResponder,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import AppBackground from '../../components/AppBackground';
 import { supabase } from '../../lib/supabase';
 import { DetailedReceipt, getReceiptDetail, updateReceipt, deleteReceipt, updateReceiptItems, ReceiptItem, renameReceiptImage } from './receiptService';
 import { formatCurrency, formatDate, parseDate } from '../../utils/formatters';
@@ -377,9 +378,7 @@ const ReceiptDetailScreen: React.FC = () => {
     const allRGSCodes = getAllRGSCodes();
 
     return (
-        <View style={styles.container}>
-            <LinearGradient colors={['#0F172A', '#000000']} style={StyleSheet.absoluteFill} />
-
+        <AppBackground>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
@@ -649,14 +648,13 @@ const ReceiptDetailScreen: React.FC = () => {
                     )}
                 </View>
             )}
-        </View>
+        </AppBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0F172A',
     },
     loadingContainer: {
         flex: 1,

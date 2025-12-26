@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
+import { generateUBL } from './ublGenerator.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -7,9 +8,7 @@ const corsHeaders = {
 
 async function decrypt(encryptedBase64: string, key: string) {
     const encoder = new TextEncoder();
-    const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
-    const iv = encryptedData.slice(0, 12);
-    const data = encryptedData.slice(12);
+    const data = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
     const cryptoKey = await crypto.subtle.importKey(
         "raw",
         encoder.encode(key.padEnd(32, '0').substring(0, 32)),
@@ -17,15 +16,16 @@ async function decrypt(encryptedBase64: string, key: string) {
         false,
         ["decrypt"]
     );
+    const iv = data.slice(0, 12);
+    const encrypted = data.slice(12);
     const decrypted = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv },
         cryptoKey,
-        data
+        encrypted
     );
     return new TextDecoder().decode(decrypted);
 }
 
-// Helper to encrypt (for token refresh storage)
 async function encrypt(text: string, key: string) {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
@@ -64,127 +64,102 @@ Deno.serve(async (req) => {
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        // 1. Identify User
         const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
         if (authError || !user) throw new Error('Unauthorized');
 
-        // 2. Fetch Receipt & Items
         const { data: receipt, error: rError } = await supabase.from('receipts').select('*, receipt_items(*)').eq('id', receipt_id).single();
         if (rError || !receipt) throw new Error('Receipt not found');
 
-        // 3. Fetch Tokens
         const { data: tokens, error: tError } = await supabase.from('integration_tokens').select('*').eq('user_id', user.id).eq('provider', 'exact_online').single();
-        if (tError || !tokens) throw new Error('Exact Online not connected. Please connect in Profile.');
+        if (tError || !tokens) throw new Error('Exact Online not connected.');
 
         const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
-        if (!encryptionKey) throw new Error('Internal Server Error: ENCRYPTION_KEY not configured.');
-        let accessToken = await decrypt(tokens.access_token_encrypted, encryptionKey);
-        const refreshToken = await decrypt(tokens.refresh_token_encrypted, encryptionKey);
+        if (!encryptionKey) throw new Error('Encryption key missing');
 
-        // 4. Token Refresh Logic
-        if (tokens.expires_at < (Date.now() / 1000) + 60) {
-            console.log('Refreshing Exact Token...');
-            const refreshResponse = await fetch('https://start.exactonline.nl/api/oauth2/token', {
+        let accessToken = await decrypt(tokens.access_token_encrypted, encryptionKey);
+
+        // --- Token Refresh Logic ---
+        const now = Math.floor(Date.now() / 1000);
+        if (tokens.expires_at <= now + 60) {
+            console.log('🔄 Token expired, refreshing...');
+            const refreshToken = await decrypt(tokens.refresh_token_encrypted, encryptionKey);
+            const clientId = Deno.env.get('EXACT_CLIENT_ID');
+            const clientSecret = Deno.env.get('EXACT_CLIENT_SECRET');
+
+            const refreshRes = await fetch('https://start.exactonline.nl/api/oauth2/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
                     grant_type: 'refresh_token',
                     refresh_token: refreshToken,
-                    client_id: Deno.env.get('EXACT_CLIENT_ID')!,
-                    client_secret: Deno.env.get('EXACT_CLIENT_SECRET')!,
+                    client_id: clientId!,
+                    client_secret: clientSecret!
                 })
             });
 
-            if (refreshResponse.ok) {
-                const newTokens = await refreshResponse.json();
-                accessToken = newTokens.access_token;
-                const encryptedAccess = await encrypt(newTokens.access_token, encryptionKey);
-                const encryptedRefresh = await encrypt(newTokens.refresh_token, encryptionKey);
-                const expiresAt = Math.floor(Date.now() / 1000) + newTokens.expires_in;
+            if (!refreshRes.ok) throw new Error('Refresh failed');
+            const newTokens = await refreshRes.json();
+            accessToken = newTokens.access_token;
 
-                await supabase.from('integration_tokens').update({
-                    access_token_encrypted: encryptedAccess,
-                    refresh_token_encrypted: encryptedRefresh,
-                    expires_at: expiresAt
-                }).eq('id', tokens.id);
-            } else {
-                throw new Error('Exact Token Refresh failed. Please reconnect.');
-            }
+            await supabase.from('integration_tokens').update({
+                access_token_encrypted: await encrypt(newTokens.access_token, encryptionKey),
+                refresh_token_encrypted: await encrypt(newTokens.refresh_token, encryptionKey),
+                expires_at: now + newTokens.expires_in,
+                updated_at: new Date().toISOString()
+            }).eq('id', tokens.id);
         }
 
-        // 5. Get Division
         const meRes = await fetch('https://start.exactonline.nl/api/v1/current/Me?$select=CurrentDivision', {
             headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' }
         });
         const meData = await meRes.json();
         const division = meData.d.results[0].CurrentDivision;
 
-        // 6. Download Receipt Image
         const { data: imageBlob } = await supabase.storage.from('receipts').download(receipt.image_path);
         const arrayBuffer = await imageBlob!.arrayBuffer();
         const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-        // 7. Create Document in Exact
+        const ublXml = generateUBL(receipt, receipt.receipt_items);
+        const base64Ubl = btoa(ublXml);
+
         const docRes = await fetch(`https://start.exactonline.nl/api/v1/${division}/documents/Documents`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ Type: 20, Subject: `Bon: ${receipt.merchant_name}` })
-        });
-        const docData = await docRes.json();
-        const documentId = docData.d.ID;
-
-        // 8. Upload Attachment
-        await fetch(`https://start.exactonline.nl/api/v1/${division}/documents/DocumentAttachments`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({
-                Document: documentId,
-                Attachment: base64Image,
-                FileName: `receipt-${receipt_id}.jpg`
+                Type: 181,
+                Subject: `EasyAccounting Compliance: ${receipt.merchant_name || 'Bon'}`,
+                DocumentDate: receipt.transaction_date || new Date().toISOString().split('T')[0]
             })
         });
 
-        // 9. Create Purchase Entry (Simplified for POC)
-        // Note: For a real app, you need to map Supplier and GLAccount GUIDs correctly.
-        // Here we assume some default or searched GUIDs based on metadata.
-        // For the POC, we'll use placeholders if GUIDs aren't in metadata.
+        if (!docRes.ok) throw new Error(`Exact Doc Error: ${await docRes.text()}`);
+        const docData = await docRes.json();
+        const documentId = docData.d.ID;
 
-        const purchaseEntry = {
-            Journal: "70", // Default Purchase Journal
-            Supplier: receipt.supplier_guid || "00000000-0000-0000-0000-000000000000",
-            Document: documentId,
-            EntryDate: receipt.transaction_date,
-            Description: `EasyAccounting: ${receipt.merchant_name}`,
-            PaymentCondition: "K", // Unapproved
-            PurchaseEntryLines: receipt.receipt_items.map((item: any) => ({
-                Description: item.description,
-                AmountDC: item.total_price,
-                AmountFC: item.total_price,
-                GLAccount: item.rgs_guid || "00000000-0000-0000-0000-000000000000",
-                Division: division
-            }))
-        };
+        await Promise.all([
+            fetch(`https://start.exactonline.nl/api/v1/${division}/documents/DocumentAttachments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Document: documentId, Attachment: base64Image, FileName: 'bon.jpg' })
+            }),
+            fetch(`https://start.exactonline.nl/api/v1/${division}/documents/DocumentAttachments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Document: documentId, Attachment: base64Ubl, FileName: 'factuur.xml' })
+            })
+        ]);
 
-        const entryRes = await fetch(`https://start.exactonline.nl/api/v1/${division}/purchaseentry/PurchaseEntries`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(purchaseEntry)
-        });
+        await supabase.from('receipts').update({
+            is_synced: true,
+            synced_at: new Date().toISOString()
+        }).eq('id', receipt_id);
 
-        if (!entryRes.ok) {
-            const err = await entryRes.json();
-            throw new Error(`Exact Entry Error: ${JSON.stringify(err)}`);
-        }
-
-        // 10. Finalize local status
-        await supabase.from('receipts').update({ is_synced: true }).eq('id', receipt_id);
-
-        return new Response(JSON.stringify({ success: true, message: 'Receipt synced to Exact Online' }), {
+        return new Response(JSON.stringify({ success: true, message: 'Sync via SI-UBL 2.0 (Inbox) geslaagd!' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
 
     } catch (error) {
-        console.error('Sync Error:', error.message);
+        console.error('Exact Sync Error:', error.message);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });

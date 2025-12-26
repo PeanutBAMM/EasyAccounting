@@ -22,42 +22,66 @@ export interface RecentReceiptSummary {
 
 /**
  * Fetches data for the dashboard finance widget and scan counter.
+ * Uses direct queries as the primary approach (bypasses RPC issues).
  */
 export const getDashboardStats = async (userId: string): Promise<MonthlyFinanceStats> => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // 1. Get profile and finance stats in parallel for speed
-    const [profileResult, statsResult] = await Promise.all([
-        supabase
-            .from('profiles')
-            .select('is_pro')
-            .eq('id', userId)
-            .single(),
-        supabase.rpc('get_monthly_finance_stats', {
-            p_user_id: userId,
-            p_start_date: startOfMonth
-        })
-    ]);
+    // 1. Get profile for Pro status
+    const { data: profileData } = await supabase
+        .from('profiles')
+        .select('is_pro')
+        .eq('id', userId)
+        .single();
 
-    const isPro = profileResult.data?.is_pro || false;
+    const isPro = profileData?.is_pro || false;
     const scanLimit = isPro ? 50 : 10;
-    const stats = statsResult.data?.[0] || {
-        total_excl_btw: 0,
-        total_incl_btw: 0,
-        btw_21_total: 0,
-        btw_9_total: 0,
-        btw_0_total: 0,
-        scan_count: 0
-    };
+
+    // 2. Get receipts for this month
+    const { data: receipts, count } = await supabase
+        .from('receipts')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userId)
+        .gte('created_at', startOfMonth);
+
+    // 3. Get all items for those receipts
+    const receiptIds = (receipts || []).map(r => r.id);
+
+    let totalIncl = 0, totalExcl = 0, v21 = 0, v9 = 0, v0 = 0;
+
+    if (receiptIds.length > 0) {
+        const { data: items } = await supabase
+            .from('receipt_items')
+            .select('total_price, vat_code')
+            .in('receipt_id', receiptIds);
+
+        (items || []).forEach((item: any) => {
+            const price = Number(item.total_price) || 0;
+            totalIncl += price;
+
+            if (item.vat_code === '21%') {
+                const excl = price / 1.21;
+                v21 += excl * 0.21;
+                totalExcl += excl;
+            } else if (item.vat_code === '9%') {
+                const excl = price / 1.09;
+                v9 += excl * 0.09;
+                totalExcl += excl;
+            } else {
+                v0 += price;
+                totalExcl += price;
+            }
+        });
+    }
 
     return {
-        totalInclBTW: Number(stats.total_incl_btw),
-        totalExclBTW: Number(stats.total_excl_btw),
-        btw21Total: Number(stats.btw_21_total),
-        btw9Total: Number(stats.btw_9_total),
-        btw0Total: Number(stats.btw_0_total),
-        scanCount: Number(stats.scan_count),
+        totalInclBTW: totalIncl,
+        totalExclBTW: totalExcl,
+        btw21Total: v21,
+        btw9Total: v9,
+        btw0Total: v0,
+        scanCount: count || 0,
         scanLimit
     };
 };

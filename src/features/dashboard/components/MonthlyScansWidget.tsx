@@ -28,8 +28,6 @@ export default function MonthlyScansWidget({ scanCount, scanLimit }: MonthlyScan
                     style={[styles.progressBar, { width: `${progress * 100}%` }]}
                 />
             </View>
-
-            <Text style={styles.percentageText}>{Math.round(progress * 100)}% compleet</Text>
         </LinearGradient>
     );
 }

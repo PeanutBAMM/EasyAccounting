@@ -15,24 +15,30 @@ interface FinanceStatsWidgetProps {
 }
 
 const { width } = Dimensions.get('window');
-const CHART_SIZE = width * 0.45;
-const STROKE_WIDTH = 12; // Slimmer stroke for a more premium look
+const CHART_SIZE = width * 0.38; // Even smaller to ensure legend fits
+const STROKE_WIDTH = 8; // Refined thickness
 const RADIUS = (CHART_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const MIN_ARC = 0.05; // 5% minimal width (requested half of 10%)
 
 export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21Total, btw9Total, btw0Total }: FinanceStatsWidgetProps) {
     const hasData = totalInclBTW > 0;
 
-    // Calculate segments based on proportions
-    const totalItemsValue = (btw21Total / 0.21) + (btw9Total / 0.09) + btw0Total || 1;
+    // Calculate segments based on proportions of the Total Incl. amount
+    let p21 = hasData ? (btw21Total / totalInclBTW) : 0;
+    let p9 = hasData ? (btw9Total / totalInclBTW) : 0;
+    let pExcl = hasData ? (totalExclBTW / totalInclBTW) : 0;
 
-    const p21 = hasData ? ((btw21Total / 0.21) / totalItemsValue) : 0;
-    const p9 = hasData ? ((btw9Total / 0.09) / totalItemsValue) : 0;
-    const p0 = hasData ? (btw0Total / totalItemsValue) : 0;
+    // Apply minimum arc boost for visibility to small non-zero segments
+    if (p21 > 0 && p21 < MIN_ARC) p21 = MIN_ARC;
+    if (p9 > 0 && p9 < MIN_ARC) p9 = MIN_ARC;
+
+    // Recalculate Excl so the total is exactly 1.0 (Excl is usually the largest, so it absorbs the boost)
+    pExcl = Math.max(0.1, 1.0 - p21 - p9);
 
     const strokeDash21 = CIRCUMFERENCE * p21;
     const strokeDash9 = CIRCUMFERENCE * p9;
-    const strokeDash0 = CIRCUMFERENCE * p0;
+    const strokeDashExcl = CIRCUMFERENCE * pExcl;
 
     return (
         <LinearGradient
@@ -84,15 +90,15 @@ export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21To
                                         strokeDashoffset={-strokeDash21}
                                         strokeLinecap="round"
                                     />
-                                    {/* BTW-vrij - Gray */}
+                                    {/* Subtotaal Excl. - White/Light Gray */}
                                     <Circle
                                         cx={CHART_SIZE / 2}
                                         cy={CHART_SIZE / 2}
                                         r={RADIUS}
-                                        stroke="#64748B"
+                                        stroke="#F8FAFC"
                                         strokeWidth={STROKE_WIDTH}
                                         fill="transparent"
-                                        strokeDasharray={[strokeDash0, CIRCUMFERENCE]}
+                                        strokeDasharray={[strokeDashExcl, CIRCUMFERENCE]}
                                         strokeDashoffset={-(strokeDash21 + strokeDash9)}
                                         strokeLinecap="round"
                                     />
@@ -139,10 +145,17 @@ export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21To
                         </View>
                     </View>
                     <View style={styles.legendItem}>
-                        <Ionicons name="ban-outline" size={16} color="#64748B" style={styles.legendIcon} />
+                        <LinearGradient
+                            colors={['#F8FAFC', '#CBD5E1']}
+                            style={styles.vatIconMockup}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Ionicons name="receipt" size={12} color="#0F172A" />
+                        </LinearGradient>
                         <View>
-                            <Text style={styles.legendValue}>{formatCurrency(btw0Total)}</Text>
-                            <Text style={styles.legendLabel}>Vrijgesteld</Text>
+                            <Text style={styles.legendValue}>{formatCurrency(totalExclBTW)}</Text>
+                            <Text style={styles.legendLabel}>Subtotaal (Excl.)</Text>
                         </View>
                     </View>
                 </View>
@@ -153,17 +166,6 @@ export default function FinanceStatsWidget({ totalInclBTW, totalExclBTW, btw21To
                     <Text style={styles.emptyStateText}>Nog geen gegevens voor deze maand</Text>
                 </View>
             )}
-
-            <View style={styles.statsGrid}>
-                <View style={[styles.statBox, { borderRightWidth: 1, borderRightColor: 'rgba(255, 255, 255, 0.05)' }]}>
-                    <Text style={styles.statLabel}>Subtotaal (Excl.)</Text>
-                    <Text style={styles.statValueCompact}>{formatCurrency(totalExclBTW)}</Text>
-                </View>
-                <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Totaal BTW</Text>
-                    <Text style={[styles.statValueCompact, { color: '#22D3EE' }]}>{formatCurrency(totalInclBTW - totalExclBTW)}</Text>
-                </View>
-            </View>
         </LinearGradient>
     );
 }
@@ -221,20 +223,20 @@ const styles = StyleSheet.create({
     },
     legendContainer: {
         flex: 1,
-        marginLeft: 20,
-        gap: 12,
+        marginLeft: 16, // Balanced spacing
+        gap: 10,
     },
     legendItem: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     legendIcon: {
-        marginRight: 10,
+        marginRight: 8,
     },
     vatIconMockup: {
-        width: 32,
-        height: 24,
-        borderRadius: 6,
+        width: 30,
+        height: 20,
+        borderRadius: 5,
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row',
@@ -242,27 +244,30 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     vatNumberMockup: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '900',
         color: 'white',
         marginRight: 1,
     },
     vatSymbolMockup: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: '800',
         color: 'white',
         opacity: 0.9,
     },
     legendValue: {
         fontSize: 14,
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#F8FAFC',
+        lineHeight: 16,
     },
     legendLabel: {
-        fontSize: 10,
-        color: '#64748B',
+        fontSize: 8,
+        color: '#94A3B8',
         textTransform: 'uppercase',
-        fontWeight: '700',
+        fontWeight: '800',
+        letterSpacing: 0.2,
+        marginTop: 1,
     },
     statsGrid: {
         flexDirection: 'row',

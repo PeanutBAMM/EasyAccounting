@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore, AuthState } from '../features/auth/authStore';
 import LoginScreen from '../features/auth/LoginScreen';
+import SignupScreen from '../features/auth/SignupScreen';
+import ForgotPasswordScreen from '../features/auth/ForgotPasswordScreen';
 import OnboardingScreen from '../features/onboarding/OnboardingScreen';
 import HomeScreen from '../features/dashboard/HomeScreen';
 import ReceiptListScreen from '../features/receipts/ReceiptListScreen';
@@ -34,6 +36,16 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
     </TouchableOpacity>
 );
 
+function AuthStack() {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </Stack.Navigator>
+    );
+}
+
 function HomeStack() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -62,16 +74,22 @@ function MainTabNavigator() {
             screenOptions={() => ({
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#0F172A',
+                    backgroundColor: 'transparent',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 88 : 68,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    height: Platform.OS === 'ios' ? 110 : 100,
+                    paddingBottom: Platform.OS === 'ios' ? 50 : 40,
                     elevation: 10,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: -4 },
                     shadowOpacity: 0.1,
                     shadowRadius: 8,
                 },
+                tabBarBackground: () => (
+                    <View style={{ flex: 1 }}>
+                        <View style={{ height: Platform.OS === 'ios' ? 50 : 50, backgroundColor: '#0F172A' }} />
+                        <View style={{ flex: 1, backgroundColor: '#0B111D' }} />
+                    </View>
+                ),
                 tabBarActiveTintColor: '#22D3EE',
                 tabBarInactiveTintColor: '#64748B',
                 tabBarShowLabel: false,
@@ -82,7 +100,7 @@ function MainTabNavigator() {
                 component={HomeStack}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} />
+                        <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} style={{ marginTop: 0 }} />
                     )
                 }}
             />
@@ -104,7 +122,7 @@ function MainTabNavigator() {
                 component={ReceiptStack}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
-                        <Ionicons name={focused ? "receipt" : "receipt-outline"} size={26} color={color} />
+                        <Ionicons name={focused ? "albums" : "albums-outline"} size={26} color={color} style={{ marginTop: 0 }} />
                     )
                 }}
             />
@@ -114,7 +132,7 @@ function MainTabNavigator() {
 
 const styles = StyleSheet.create({
     customButtonContainer: {
-        top: -16,
+        top: -24, // Lifted slightly more
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#22D3EE',
@@ -154,7 +172,7 @@ export default function AppNavigator() {
             ) : session ? (
                 <MainTabNavigator />
             ) : (
-                <LoginScreen />
+                <AuthStack />
             )}
             <BackgroundNotification />
         </NavigationContainer>

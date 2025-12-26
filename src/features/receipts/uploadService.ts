@@ -2,6 +2,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../../lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import * as Crypto from 'expo-crypto';
+import { getDeviceId } from '../../utils/deviceInfo';
 
 /**
  * Optimizies the image for Google Cloud Vision/Gemini (and bandwidth).
@@ -56,6 +57,8 @@ export const uploadReceiptImage = async (uri: string, userId: string) => {
 
         // 4. Create Database Record & Get ID
         console.log('📝 Creating database record...');
+        const deviceId = await getDeviceId();
+
         const { data: receiptRec, error: dbError } = await supabase
             .from('receipts')
             .insert({
@@ -64,7 +67,8 @@ export const uploadReceiptImage = async (uri: string, userId: string) => {
                 status: 'processing',
                 merchant_name: 'Wordt verwerkt...',
                 total_amount: 0.00,
-                currency: 'EUR'
+                currency: 'EUR',
+                device_id: deviceId
             })
             .select('id')
             .single();

@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
+import { formatCurrency, toTitleCase } from '../../utils/formatters';
+import AppBackground from '../../components/AppBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../auth/authStore';
-import { formatCurrency, toTitleCase } from '../../utils/formatters';
 
 type RootStackParamList = {
     ReceiptDetail: { receiptId: string };
@@ -285,11 +286,10 @@ export default function ReceiptListScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            <LinearGradient colors={['#0F172A', '#000000']} style={StyleSheet.absoluteFill} />
+        <AppBackground>
             <StatusBar barStyle="light-content" />
 
-            <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Bonnetjes Overzicht</Text>
                 </View>
@@ -354,15 +354,12 @@ export default function ReceiptListScreen() {
             </SafeAreaView>
 
             {renderDropdownModal()}
-        </View>
+        </AppBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-    },
-    safeArea: {
         flex: 1,
     },
     header: {
@@ -543,7 +540,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     modalScroll: {
-        gap: 4,
+        // gap: 4, // React Native styles don't support gap in ScrollView directly like this
     },
     modalItem: {
         flexDirection: 'row',

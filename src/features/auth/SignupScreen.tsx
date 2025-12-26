@@ -9,6 +9,7 @@ import {
     Platform,
     ScrollView,
     ActivityIndicator,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,24 +21,28 @@ import AppBackground from '../../components/AppBackground';
 import BrandLogo from '../../components/BrandLogo';
 import GoogleIcon from '../../components/GoogleIcon';
 import FooterSafeZone from '../../components/FooterSafeZone';
-import { Dimensions } from 'react-native';
 
 const { width: DeviceWidth } = Dimensions.get('window');
 
-export default function LoginScreen({ navigation }: { navigation: any }) {
+export default function SignupScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isConfirmVisible, setIsConfirmVisible] = useState(false);
 
-    const { signInWithEmail, isLoading, error, clearError } = useAuthStore();
+    const { signUp, isLoading, error, clearError } = useAuthStore();
 
     useEffect(() => {
         return () => clearError();
     }, []);
 
-    const handleLogin = async () => {
-        if (!email || !password) return;
-        await signInWithEmail(email, password);
+    const handleSignup = async () => {
+        if (!email || !password || !confirmPassword) return;
+        if (password !== confirmPassword) {
+            return;
+        }
+        await signUp(email, password);
     };
 
     return (
@@ -48,10 +53,14 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
                     style={styles.keyboardView}
                 >
                     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color="#FFF" />
+                        </TouchableOpacity>
+
                         <View style={styles.header}>
                             <BrandLogo />
                             <Text style={styles.subtitle}>
-                                Eenvoudig en snel boekhouden, stuur met één druk op de knop je fysieke bonnen door als digitale bonnen naar je boekhoudpakket.
+                                Account Aanmaken
                             </Text>
                         </View>
 
@@ -80,12 +89,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <View style={styles.labelRow}>
-                                    <Text style={styles.label}>Wachtwoord</Text>
-                                    <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                                        <Text style={styles.forgotLink}>Vergeten?</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <Text style={styles.label}>Wachtwoord</Text>
                                 <View style={styles.inputWrapper}>
                                     <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
                                     <TextInput
@@ -109,17 +113,42 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
                                 </View>
                             </View>
 
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Wachtwoord Bevestigen</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="••••••••"
+                                        placeholderTextColor="#475569"
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry={!isConfirmVisible}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setIsConfirmVisible(!isConfirmVisible)}
+                                    >
+                                        <Ionicons
+                                            name={isConfirmVisible ? 'eye-off-outline' : 'eye-outline'}
+                                            size={20}
+                                            color="#94A3B8"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
                             <TouchableOpacity
-                                style={styles.loginButtonContainer}
-                                onPress={handleLogin}
+                                style={styles.signupButtonContainer}
+                                onPress={handleSignup}
                                 disabled={isLoading}
                                 activeOpacity={0.8}
                             >
-                                <View style={styles.loginButton}>
+                                <View style={styles.signupButton}>
                                     {isLoading ? (
                                         <ActivityIndicator color="#0F172A" />
                                     ) : (
-                                        <Text style={styles.loginButtonText}>Inloggen</Text>
+                                        <Text style={styles.signupButtonText}>Account Aanmaken</Text>
                                     )}
                                 </View>
                             </TouchableOpacity>
@@ -148,10 +177,10 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
                                 </LinearGradient>
                             </TouchableOpacity>
 
-                            <View style={styles.signupRow}>
-                                <Text style={styles.signupText}>Nog geen account? </Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                                    <Text style={styles.signupLink}>Account aanmaken</Text>
+                            <View style={styles.loginRow}>
+                                <Text style={styles.loginText}>Heb je al een account? </Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                                    <Text style={styles.loginLink}>Inloggen</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -172,16 +201,25 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 24,
-        paddingTop: 40, // Reduced from 60
+        paddingTop: 10, // Reduced from 20
         paddingBottom: 40,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 32,
     },
     header: {
         alignItems: 'center',
-        marginBottom: 33, // Reduced from 48 to keep follow-up elements in place
+        marginBottom: 33,
     },
     subtitle: {
-        fontSize: 13, // Smaller text
-        color: '#CBD5E1', // More prominent contrast
+        fontSize: 13,
+        color: '#CBD5E1',
         fontWeight: '500',
         textAlign: 'center',
         lineHeight: 18,
@@ -208,12 +246,6 @@ const styles = StyleSheet.create({
     },
     inputGroup: {
         marginBottom: 20,
-    },
-    labelRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
     },
     label: {
         color: '#94A3B8',
@@ -242,23 +274,18 @@ const styles = StyleSheet.create({
     eyeIcon: {
         padding: 8,
     },
-    forgotLink: {
-        color: '#22D3EE',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    loginButtonContainer: {
+    signupButtonContainer: {
         marginTop: 12,
         marginBottom: 24,
     },
-    loginButton: {
+    signupButton: {
         height: 56,
         borderRadius: 12,
         backgroundColor: '#FFF',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loginButtonText: {
+    signupButtonText: {
         color: '#0F172A',
         fontSize: 16,
         fontWeight: 'bold',
@@ -306,16 +333,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    signupRow: {
+    loginRow: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    signupText: {
+    loginText: {
         color: '#64748B',
         fontSize: 14,
     },
-    signupLink: {
+    loginLink: {
         color: '#22D3EE',
         fontSize: 14,
         fontWeight: '600',
