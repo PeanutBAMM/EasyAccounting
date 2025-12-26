@@ -19,7 +19,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../auth/authStore';
-import { useNavigation } from '@react-navigation/native';
 import AppBackground from '../../components/AppBackground';
 import BrandLogo from '../../components/BrandLogo';
 import FooterSafeZone from '../../components/FooterSafeZone';

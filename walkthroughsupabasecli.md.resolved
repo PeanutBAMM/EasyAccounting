@@ -1,0 +1,52 @@
+# Supabase CLI Walkthrough & Cheat Sheet
+
+Dit bestand bevat de belangrijkste commando's voor het beheren van de EasyAccounting Supabase backend via de CLI.
+
+## 1. Project Koppelen
+Voordat je commando's kunt uitvoeren, moet de lokale omgeving gekoppeld zijn aan het remote project.
+```bash
+# Inloggen bij Supabase
+npx supabase login
+
+# Project koppelen (Project ID: timpxzmkzgpaluslmhpv)
+npx supabase link --project-ref timpxzmkzgpaluslmhpv
+```
+
+## 2. Database Migraties
+Migraties worden gebruikt om het database schema synchroon te houden.
+```bash
+# Status van migraties bekijken (Local vs Remote)
+npx supabase migration list
+
+# Schema van de database naar lokaal trekken
+npx supabase db pull
+
+# Nieuwe lokale migraties naar de database pushen
+npx supabase db push
+
+# Een specifieke migratie repareren/overslaan
+npx supabase migration repair --status reverted <migration_id>
+```
+
+## 3. Edge Functions
+Functies voor AI-verwerking en synchronisatie.
+```bash
+# Lijst van actieve functies bekijken
+npx supabase functions list
+
+# Een specifieke functie implementeren (bijv. process-receipt)
+npx supabase functions deploy process-receipt --no-verify-jwt
+
+# Lokale development van functies
+npx supabase functions serve
+```
+
+## 4. Database Inspectie
+Directe queries uitvoeren (Docker vereist voor lokale inspectie, anders via dashboard).
+```bash
+# Tabel inhoud bekijken via CLI
+npx supabase db execute --linked "SELECT * FROM receipts LIMIT 5;"
+```
+
+---
+*Dit bestand is hersteld na een onbedoelde verwijdering tijdens de cleanup.*

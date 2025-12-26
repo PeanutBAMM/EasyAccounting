@@ -74,16 +74,22 @@ function MainTabNavigator() {
             screenOptions={() => ({
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#0F172A',
+                    backgroundColor: 'transparent',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 90 : 75, // Slightly taller for better spacing
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 15, // More padding to avoid edge
+                    height: Platform.OS === 'ios' ? 110 : 100,
+                    paddingBottom: Platform.OS === 'ios' ? 50 : 40,
                     elevation: 10,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: -4 },
                     shadowOpacity: 0.1,
                     shadowRadius: 8,
                 },
+                tabBarBackground: () => (
+                    <View style={{ flex: 1 }}>
+                        <View style={{ height: Platform.OS === 'ios' ? 50 : 50, backgroundColor: '#0F172A' }} />
+                        <View style={{ flex: 1, backgroundColor: '#0B111D' }} />
+                    </View>
+                ),
                 tabBarActiveTintColor: '#22D3EE',
                 tabBarInactiveTintColor: '#64748B',
                 tabBarShowLabel: false,
@@ -94,7 +100,7 @@ function MainTabNavigator() {
                 component={HomeStack}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} />
+                        <Ionicons name={focused ? "home" : "home-outline"} size={26} color={color} style={{ marginTop: 0 }} />
                     )
                 }}
             />
@@ -116,7 +122,7 @@ function MainTabNavigator() {
                 component={ReceiptStack}
                 options={{
                     tabBarIcon: ({ focused, color }) => (
-                        <Ionicons name={focused ? "receipt" : "receipt-outline"} size={26} color={color} />
+                        <Ionicons name={focused ? "albums" : "albums-outline"} size={26} color={color} style={{ marginTop: 0 }} />
                     )
                 }}
             />

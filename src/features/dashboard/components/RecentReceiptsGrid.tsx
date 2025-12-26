@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RecentReceiptSummary } from '../dashboardService';
 import ReceiptTile from './ReceiptTile';
 
@@ -32,11 +34,19 @@ export default function RecentReceiptsGrid({ receipts, onReceiptPress, onShowMor
 
             {receipts.length > 0 && (
                 <TouchableOpacity
-                    style={styles.showMoreButton}
+                    style={styles.showMoreContainer}
                     onPress={onShowMorePress}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.showMoreText}>Toon meer bonnetjes &gt;</Text>
+                    <LinearGradient
+                        colors={['rgba(34, 211, 238, 0.15)', 'rgba(99, 102, 241, 0.15)']}
+                        style={styles.showMoreGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                    >
+                        <Text style={styles.showMoreText}>Toon meer bonnetjes</Text>
+                        <Ionicons name="arrow-forward" size={16} color="#22D3EE" style={{ marginLeft: 8 }} />
+                    </LinearGradient>
                 </TouchableOpacity>
             )}
         </View>
@@ -59,19 +69,26 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
-    showMoreButton: {
-        marginTop: 4,
-        paddingVertical: 12,
+    showMoreContainer: {
+        marginTop: 8,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    showMoreGradient: {
+        paddingVertical: 14,
+        flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(34, 211, 238, 0.08)',
-        borderRadius: 12,
+        justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(34, 211, 238, 0.15)',
+        borderColor: 'rgba(34, 211, 238, 0.3)',
+        borderRadius: 16,
     },
     showMoreText: {
         color: '#22D3EE',
-        fontWeight: '600',
+        fontWeight: '800',
         fontSize: 14,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     emptyStateContainer: {
         width: '100%',

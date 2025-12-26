@@ -11,6 +11,15 @@ interface ReceiptTileProps {
 }
 
 export default function ReceiptTile({ receipt, onPress }: ReceiptTileProps) {
+    const formatDateCompact = (dateString: string) => {
+        if (!dateString) return '--/--/--';
+        const d = new Date(dateString);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        return `${day}/${month}/${year}`;
+    };
+
     return (
         <TouchableOpacity
             style={styles.container}
@@ -22,10 +31,14 @@ export default function ReceiptTile({ receipt, onPress }: ReceiptTileProps) {
                     <Text style={styles.merchantName} numberOfLines={1}>
                         {toTitleCase(receipt.merchant_name)}
                     </Text>
-                    {receipt.is_synced && (
-                        <Ionicons name="cloud-done" size={14} color="#3B82F6" style={styles.syncIcon} />
-                    )}
+                    <Ionicons
+                        name={receipt.is_synced ? "cloud-done" : "sync-outline"}
+                        size={14}
+                        color={receipt.is_synced ? "#3B82F6" : "#64748B"}
+                        style={styles.syncIcon}
+                    />
                 </View>
+                <Text style={styles.scanDate}>{formatDateCompact(receipt.transaction_date)}</Text>
             </View>
 
             <View style={styles.amountContainer}>
@@ -33,34 +46,37 @@ export default function ReceiptTile({ receipt, onPress }: ReceiptTileProps) {
             </View>
 
             <View style={styles.vatContainer}>
-                {receipt.btw21 > 0 && (
-                    <View style={styles.vatItem}>
-                        <LinearGradient
-                            colors={['#3B82F6', '#1D4ED8']}
-                            style={styles.vatIconMockup}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <Text style={styles.vatNumberMockup}>21</Text>
-                            <Text style={styles.vatSymbolMockup}>%</Text>
-                        </LinearGradient>
-                        <Text style={[styles.vatAmount, { color: '#3B82F6' }]}>{formatCurrency(receipt.btw21)}</Text>
-                    </View>
-                )}
-                {receipt.btw9 > 0 && (
-                    <View style={styles.vatItem}>
-                        <LinearGradient
-                            colors={['#A855F7', '#7E22CE']}
-                            style={styles.vatIconMockup}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <Text style={styles.vatNumberMockup}>9</Text>
-                            <Text style={styles.vatSymbolMockup}>%</Text>
-                        </LinearGradient>
-                        <Text style={[styles.vatAmount, { color: '#A855F7' }]}>{formatCurrency(receipt.btw9)}</Text>
-                    </View>
-                )}
+                {/* Always show 21% */}
+                <View style={styles.vatItem}>
+                    <LinearGradient
+                        colors={['#3B82F6', '#1D4ED8']}
+                        style={styles.vatIconMockup}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <Text style={styles.vatNumberMockup}>21</Text>
+                        <Text style={styles.vatSymbolMockup}>%</Text>
+                    </LinearGradient>
+                    <Text style={[styles.vatAmount, { color: receipt.btw21 > 0 ? '#3B82F6' : '#475569' }]}>
+                        {formatCurrency(receipt.btw21)}
+                    </Text>
+                </View>
+
+                {/* Always show 9% */}
+                <View style={styles.vatItem}>
+                    <LinearGradient
+                        colors={['#A855F7', '#7E22CE']}
+                        style={styles.vatIconMockup}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <Text style={styles.vatNumberMockup}>9</Text>
+                        <Text style={styles.vatSymbolMockup}>%</Text>
+                    </LinearGradient>
+                    <Text style={[styles.vatAmount, { color: receipt.btw9 > 0 ? '#A855F7' : '#475569' }]}>
+                        {formatCurrency(receipt.btw9)}
+                    </Text>
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -87,9 +103,15 @@ const styles = StyleSheet.create({
     merchantName: {
         fontSize: 13,
         color: '#F8FAFC',
-        fontWeight: '500',
+        fontWeight: '700',
         flex: 1,
         marginRight: 4,
+    },
+    scanDate: {
+        fontSize: 10,
+        color: '#64748B',
+        marginTop: 2,
+        fontWeight: '600',
     },
     syncIcon: {
         marginLeft: 4,

@@ -289,7 +289,7 @@ export default function ReceiptListScreen() {
         <AppBackground>
             <StatusBar barStyle="light-content" />
 
-            <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Bonnetjes Overzicht</Text>
                 </View>
@@ -360,9 +360,6 @@ export default function ReceiptListScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-    },
-    safeArea: {
         flex: 1,
     },
     header: {
@@ -543,7 +540,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     modalScroll: {
-        gap: 4,
+        // gap: 4, // React Native styles don't support gap in ScrollView directly like this
     },
     modalItem: {
         flexDirection: 'row',

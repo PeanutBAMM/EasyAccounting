@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import AppBackground from '../../components/AppBackground';
 import { supabase } from '../../lib/supabase';
 import { DetailedReceipt, getReceiptDetail, updateReceipt, deleteReceipt, updateReceiptItems, ReceiptItem, renameReceiptImage } from './receiptService';
@@ -28,6 +28,7 @@ import LineItemEditor from './components/LineItemEditor';
 type ReceiptDetailRouteProp = RouteProp<{ params: { receiptId: string } }, 'params'>;
 
 const ReceiptDetailScreen: React.FC = () => {
+    const navigation = useNavigation();
     const route = useRoute<ReceiptDetailRouteProp>();
     const { receiptId } = route.params;
 

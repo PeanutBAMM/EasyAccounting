@@ -104,55 +104,53 @@ export default function HomeScreen() {
     return (
         <AppBackground>
             <StatusBar barStyle="light-content" />
-            <SafeAreaView style={styles.safeArea}>
-                <ProfileHeader
-                    userName={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Ricardo'}
-                    avatarUrl={user?.user_metadata?.avatar_url}
-                    isPro={stats?.scanLimit === 50}
-                    onProfilePress={() => navigation.navigate('Profile' as any)}
-                />
-
-                <View style={styles.contentWrapper}>
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                                tintColor="#22D3EE"
-                            />
-                        }
-                    >
-                        {stats && (
-                            <>
-                                <MonthlyScansWidget
-                                    scanCount={stats.scanCount}
-                                    scanLimit={stats.scanLimit}
-                                />
-
-                                <FinanceStatsWidget
-                                    totalInclBTW={stats.totalInclBTW}
-                                    totalExclBTW={stats.totalExclBTW}
-                                    btw21Total={stats.btw21Total}
-                                    btw9Total={stats.btw9Total}
-                                    btw0Total={stats.btw0Total}
-                                />
-                            </>
-                        )}
-
-                        <RecentReceiptsGrid
-                            receipts={recentReceipts}
-                            onReceiptPress={(id) => navigation.navigate('ReceiptDetail' as any, { receiptId: id })}
-                            onShowMorePress={() => navigation.navigate('ReceiptList')}
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#22D3EE"
                         />
+                    }
+                >
+                    <ProfileHeader
+                        userName={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Ricardo'}
+                        avatarUrl={user?.user_metadata?.avatar_url}
+                        isPro={stats?.scanLimit === 50}
+                        onProfilePress={() => navigation.navigate('Profile' as any)}
+                    />
 
-                        {/* Spacer at bottom for Tab Bar visibility */}
-                        <View style={{ height: 20 }} />
-                    </ScrollView>
-                </View>
+                    {stats && (
+                        <>
+                            <MonthlyScansWidget
+                                scanCount={stats.scanCount}
+                                scanLimit={stats.scanLimit}
+                            />
+
+                            <FinanceStatsWidget
+                                totalInclBTW={stats.totalInclBTW}
+                                totalExclBTW={stats.totalExclBTW}
+                                btw21Total={stats.btw21Total}
+                                btw9Total={stats.btw9Total}
+                                btw0Total={stats.btw0Total}
+                            />
+                        </>
+                    )}
+
+                    <RecentReceiptsGrid
+                        receipts={recentReceipts}
+                        onReceiptPress={(id) => navigation.navigate('ReceiptDetail' as any, { receiptId: id })}
+                        onShowMorePress={() => navigation.navigate('ReceiptList')}
+                    />
+
+                    {/* Extra spacer for the taller tab bar */}
+                    <View style={{ height: 130 }} />
+                </ScrollView>
             </SafeAreaView>
-        </AppBackground>
+        </AppBackground >
     );
 }
 
@@ -172,7 +170,6 @@ const styles = StyleSheet.create({
     },
     contentWrapper: {
         flex: 1,
-        marginTop: -10, // Pull up to reduce header gap
     },
     scrollContent: {
         paddingTop: 0, // Reduced padding
